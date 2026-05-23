@@ -29,7 +29,7 @@ export default function Ranking() {
 
   return (
     <div className="min-h-[calc(100vh-3.5rem)] bg-gray-50 py-8">
-      <div className="max-w-5xl mx-auto px-8">
+      <div className="max-w-5xl mx-auto px-4 md:px-8">
         <h1 className="text-2xl font-bold text-gray-900 mb-1">Ranking</h1>
         <p className="text-gray-500 text-sm mb-8">Classificação geral — todas as etapas combinadas.</p>
 
@@ -38,11 +38,11 @@ export default function Ranking() {
         ) : (
           <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
             {/* Header */}
-            <div className="grid grid-cols-[3rem_1fr_10rem_10rem_10rem] px-5 py-3 border-b border-gray-100">
+            <div className="grid grid-cols-[2.5rem_1fr_6rem] md:grid-cols-[3rem_1fr_10rem_10rem_10rem] px-4 md:px-5 py-3 border-b border-gray-100">
               <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">#</span>
               <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Apelido</span>
-              <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide text-center">Resultados certos</span>
-              <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide text-center">Placares exatos</span>
+              <span className="hidden md:block text-xs font-semibold text-gray-400 uppercase tracking-wide text-center">Resultados certos</span>
+              <span className="hidden md:block text-xs font-semibold text-gray-400 uppercase tracking-wide text-center">Placares exatos</span>
               <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide text-right">Pontuação</span>
             </div>
 
@@ -55,7 +55,7 @@ export default function Ranking() {
               return (
                 <div
                   key={row.user_id}
-                  className={`grid grid-cols-[3rem_1fr_10rem_10rem_10rem] px-5 py-3.5 border-b border-gray-100 last:border-0 transition ${
+                  className={`grid grid-cols-[2.5rem_1fr_6rem] md:grid-cols-[3rem_1fr_10rem_10rem_10rem] px-4 md:px-5 py-3.5 border-b border-gray-100 last:border-0 transition ${
                     isMe ? 'bg-green-50' : 'hover:bg-gray-50'
                   }`}
                 >
@@ -81,13 +81,13 @@ export default function Ranking() {
                     )}
                   </div>
 
-                  {/* Resultados certos */}
-                  <div className="flex items-center justify-center">
+                  {/* Resultados certos — só desktop */}
+                  <div className="hidden md:flex items-center justify-center">
                     <span className="text-sm font-semibold text-gray-800">{resultadosCertos}</span>
                   </div>
 
-                  {/* Placares exatos */}
-                  <div className="flex items-center justify-center">
+                  {/* Placares exatos — só desktop */}
+                  <div className="hidden md:flex items-center justify-center">
                     <span className="text-sm font-semibold text-gray-800">{row.placares_exatos ?? 0}</span>
                   </div>
 

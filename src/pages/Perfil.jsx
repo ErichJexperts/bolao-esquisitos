@@ -6,12 +6,12 @@ import { supabase } from '../lib/supabase'
 function Field({ label, description, children }) {
   return (
     <div className="py-5 border-b border-gray-100 last:border-0">
-      <div className="flex items-start justify-between gap-8">
+      <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3 md:gap-8">
         <div className="min-w-0">
           <p className="text-sm font-medium text-gray-800 mb-0.5">{label}</p>
           {description && <p className="text-xs text-gray-400">{description}</p>}
         </div>
-        <div className="w-80 shrink-0">{children}</div>
+        <div className="w-full md:w-80 md:shrink-0">{children}</div>
       </div>
     </div>
   )
@@ -103,7 +103,7 @@ export default function Perfil() {
 
   return (
     <div className="min-h-[calc(100vh-3.5rem)] bg-gray-50 py-8">
-      <div className="max-w-5xl mx-auto px-8">
+      <div className="max-w-5xl mx-auto px-4 md:px-8">
         <h1 className="text-2xl font-bold text-gray-900 mb-1">Meu perfil</h1>
         <p className="text-gray-500 text-sm mb-8">Gerencie suas informações.</p>
 

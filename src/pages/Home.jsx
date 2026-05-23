@@ -20,8 +20,8 @@ const CARDS = [
 
 export default function Home() {
   return (
-    <div className="min-h-[calc(100vh-3.5rem)] bg-gray-50 py-16">
-      <div className="max-w-5xl mx-auto px-8 flex flex-col items-center">
+    <div className="min-h-[calc(100vh-3.5rem)] bg-gray-50 py-8 md:py-16">
+      <div className="max-w-5xl mx-auto px-4 md:px-8 flex flex-col items-center">
 
         {/* Badge */}
         <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border border-green-200 text-green-700 bg-green-50 mb-8">
@@ -35,7 +35,7 @@ export default function Home() {
         </h1>
 
         {/* Subtítulo */}
-        <p className="text-gray-500 text-center text-lg mb-16 max-w-2xl">
+        <p className="text-gray-500 text-center text-base md:text-lg mb-10 md:mb-16 max-w-2xl">
           Aqui você coloca os seus palpites dos jogos e vamos ver quem entende mais
           de futebol nessa bagaça… ou quem tem mais sorte.
         </p>
