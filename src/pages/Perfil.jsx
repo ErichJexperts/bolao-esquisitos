@@ -5,11 +5,11 @@ import { supabase } from '../lib/supabase'
 
 function Field({ label, description, children }) {
   return (
-    <div className="py-5 border-b border-gray-100 last:border-0">
+    <div className="py-5 border-b border-gray-100 dark:border-gray-700 last:border-0">
       <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3 md:gap-8">
         <div className="min-w-0">
-          <p className="text-sm font-medium text-gray-800 mb-0.5">{label}</p>
-          {description && <p className="text-xs text-gray-400">{description}</p>}
+          <p className="text-sm font-medium text-gray-800 dark:text-gray-200 mb-0.5">{label}</p>
+          {description && <p className="text-xs text-gray-400 dark:text-gray-500">{description}</p>}
         </div>
         <div className="w-full md:w-80 md:shrink-0">{children}</div>
       </div>
@@ -22,7 +22,7 @@ function SaveButton({ loading, saved, onClick, label = 'Salvar' }) {
     <button
       onClick={onClick}
       disabled={loading}
-      className="mt-2 flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-medium bg-gray-900 text-white hover:bg-gray-700 disabled:opacity-50 transition"
+      className="mt-2 flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-medium bg-gray-900 text-white hover:bg-gray-700 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white disabled:opacity-50 transition"
     >
       {loading && <Loader2 size={13} className="animate-spin" />}
       {!loading && saved && <Check size={13} />}
@@ -33,20 +33,18 @@ function SaveButton({ loading, saved, onClick, label = 'Salvar' }) {
 
 function Feedback({ error, success }) {
   if (error) return <p className="mt-1.5 text-xs text-red-500">{error}</p>
-  if (success) return <p className="mt-1.5 text-xs text-green-600">{success}</p>
+  if (success) return <p className="mt-1.5 text-xs text-green-600 dark:text-green-400">{success}</p>
   return null
 }
 
 export default function Perfil() {
   const { user } = useAuth()
 
-  // Apelido
   const [username, setUsername] = useState('')
   const [usernameLoading, setUsernameLoading] = useState(false)
   const [usernameSaved, setUsernameSaved] = useState(false)
   const [usernameError, setUsernameError] = useState('')
 
-  // Senha
   const [senha, setSenha] = useState('')
   const [senhaConfirm, setSenhaConfirm] = useState('')
   const [senhaLoading, setSenhaLoading] = useState(false)
@@ -55,11 +53,7 @@ export default function Perfil() {
 
   useEffect(() => {
     async function loadProfile() {
-      const { data } = await supabase
-        .from('profiles')
-        .select('username')
-        .eq('id', user.id)
-        .single()
+      const { data } = await supabase.from('profiles').select('username').eq('id', user.id).single()
       if (data?.username) setUsername(data.username)
     }
     loadProfile()
@@ -70,9 +64,7 @@ export default function Perfil() {
     setUsernameSaved(false)
     if (!username.trim()) return setUsernameError('Apelido não pode ser vazio.')
     setUsernameLoading(true)
-    const { error } = await supabase
-      .from('profiles')
-      .upsert({ id: user.id, username: username.trim() }, { onConflict: 'id' })
+    const { error } = await supabase.from('profiles').upsert({ id: user.id, username: username.trim() }, { onConflict: 'id' })
     setUsernameLoading(false)
     if (error) {
       setUsernameError(error.message.includes('unique') ? 'Esse apelido já está em uso.' : error.message)
@@ -99,18 +91,18 @@ export default function Perfil() {
     }
   }
 
-  const inputCls = 'w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:border-gray-400 transition'
+  const inputCls = 'w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:border-gray-400 dark:focus:border-gray-400 transition'
 
   return (
-    <div className="min-h-[calc(100vh-3.5rem)] bg-gray-50 py-8">
+    <div className="min-h-[calc(100vh-3.5rem)] bg-gray-50 dark:bg-gray-900 py-8">
       <div className="max-w-5xl mx-auto px-4 md:px-8">
-        <h1 className="text-2xl font-bold text-gray-900 mb-1">Meu perfil</h1>
-        <p className="text-gray-500 text-sm mb-8">Gerencie suas informações.</p>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">Meu perfil</h1>
+        <p className="text-gray-500 dark:text-gray-400 text-sm mb-8">Gerencie suas informações.</p>
 
-        <div className="bg-white border border-gray-200 rounded-2xl px-6">
+        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl px-6">
 
           <Field label="E-mail" description="Endereço de e-mail usado para entrar na conta.">
-            <p className="px-3 py-2 text-sm text-gray-700 bg-gray-50 border border-gray-200 rounded-lg">{user?.email}</p>
+            <p className="px-3 py-2 text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg">{user?.email}</p>
           </Field>
 
           <Field label="Nome de usuário" description="Seu nome no bolão — aparece no ranking e identifica você para os outros participantes.">
@@ -123,7 +115,7 @@ export default function Perfil() {
                 placeholder="Seu nome de usuário"
                 maxLength={24}
               />
-              <span className={`absolute right-2.5 top-1/2 -translate-y-1/2 text-xs ${username.length >= 24 ? 'text-red-400' : 'text-gray-400'}`}>
+              <span className={`absolute right-2.5 top-1/2 -translate-y-1/2 text-xs ${username.length >= 24 ? 'text-red-400' : 'text-gray-400 dark:text-gray-500'}`}>
                 {username.length}/24
               </span>
             </div>
@@ -133,20 +125,8 @@ export default function Perfil() {
 
           <Field label="Senha" description="Mínimo de 6 caracteres.">
             <div className="space-y-2">
-              <input
-                type="password"
-                value={senha}
-                onChange={e => setSenha(e.target.value)}
-                className={inputCls}
-                placeholder="Nova senha"
-              />
-              <input
-                type="password"
-                value={senhaConfirm}
-                onChange={e => setSenhaConfirm(e.target.value)}
-                className={inputCls}
-                placeholder="Confirmar nova senha"
-              />
+              <input type="password" value={senha} onChange={e => setSenha(e.target.value)} className={inputCls} placeholder="Nova senha" />
+              <input type="password" value={senhaConfirm} onChange={e => setSenhaConfirm(e.target.value)} className={inputCls} placeholder="Confirmar nova senha" />
             </div>
             <Feedback error={senhaError} success={senhaSaved ? 'Senha alterada com sucesso!' : ''} />
             <SaveButton loading={senhaLoading} saved={senhaSaved} onClick={saveSenha} label="Alterar senha" />

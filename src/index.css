@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 .scroll-x-hidden {
   overflow-x: scroll;
   -webkit-overflow-scrolling: touch;
