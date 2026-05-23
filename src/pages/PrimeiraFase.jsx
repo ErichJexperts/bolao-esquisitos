@@ -84,7 +84,7 @@ export default function PrimeiraFase() {
     async function load() {
       try {
         const [matchRes, predRes] = await Promise.all([
-          supabase.from('matches').select('*').in('round', ROUNDS).order('match_date'),
+          supabase.from('matches').select('*').in('round', [...ROUNDS, ...KNOCKOUT]).order('match_date'),
           supabase.from('predictions').select('*').eq('user_id', user.id),
         ])
         if (matchRes.error) throw matchRes.error
@@ -146,7 +146,7 @@ export default function PrimeiraFase() {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-  const byRound = ROUNDS.map(round => ({ round, matches: matches.filter(m => m.round === round) }))
+  const byRound = [...ROUNDS, ...KNOCKOUT].map(round => ({ round, matches: matches.filter(m => m.round === round) }))
 
   if (loading) return (
     <div className="min-h-[calc(100vh-3.5rem)] bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
@@ -175,9 +175,12 @@ export default function PrimeiraFase() {
         : 'border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 dark:text-white focus:outline-none focus:border-gray-400 dark:focus:border-gray-400 focus:bg-white dark:focus:bg-gray-600'
     }`
 
+    const isKnockout = KNOCKOUT.includes(match.round)
+    const matchLabel = isKnockout ? `Jogo ${match.group_name}` : `Grupo ${match.group_name}`
+
     const dateInfo = (
       <span className="text-xs text-gray-400 dark:text-gray-500 capitalize">
-        {formatDate(match.match_date)} · Grupo {match.group_name}
+        {formatDate(match.match_date)} · {matchLabel}
       </span>
     )
 
@@ -201,7 +204,7 @@ export default function PrimeiraFase() {
             </div>
             <div className="hidden md:block w-40 shrink-0 text-right">
               <span className="text-xs text-gray-400 dark:text-gray-500 capitalize">{formatDate(match.match_date)}</span>
-              <br /><span className="text-xs text-gray-400 dark:text-gray-500">Grupo {match.group_name}</span>
+              <br /><span className="text-xs text-gray-400 dark:text-gray-500">{matchLabel}</span>
             </div>
           </div>
           <div className="md:hidden text-center pb-2">{dateInfo}</div>
@@ -263,7 +266,7 @@ export default function PrimeiraFase() {
           <div className="hidden md:block w-40 shrink-0 text-right">
             <div className="flex flex-col items-end gap-0.5">
               <span className="text-xs text-gray-500 dark:text-gray-400 capitalize">{formatDate(match.match_date)}</span>
-              <span className="text-xs text-gray-400 dark:text-gray-500">Grupo {match.group_name}</span>
+              <span className="text-xs text-gray-400 dark:text-gray-500">{matchLabel}</span>
             </div>
           </div>
         </div>
@@ -344,7 +347,7 @@ export default function PrimeiraFase() {
 
         {/* Lista */}
         <div className="min-h-96">
-          {ROUNDS.includes(activeRound) ? (
+          {currentMatches.length > 0 ? (
             <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl overflow-hidden divide-y divide-gray-100 dark:divide-gray-700">
               {currentMatches.map(match => <MatchRow key={match.id} match={match} />)}
             </div>
