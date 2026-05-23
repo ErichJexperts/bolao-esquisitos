@@ -23,7 +23,11 @@ export default function Cadastro() {
 
     setLoading(true)
 
-    const { data, error: signUpError } = await supabase.auth.signUp({ email, password })
+    const { data, error: signUpError } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { data: { username: username.trim() } },
+    })
     if (signUpError) { setError(signUpError.message); setLoading(false); return }
 
     const userId = data.user?.id
