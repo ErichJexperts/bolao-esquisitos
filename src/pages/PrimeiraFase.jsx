@@ -403,10 +403,7 @@ export default function PrimeiraFase() {
         </div>
 
         {/* Tabs */}
-        <div
-          className="flex mb-6 gap-1.5 overflow-x-auto pb-1"
-          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-        >
+        <div className="scroll-x-hidden flex mb-6 gap-1.5 pb-1">
           {[...ROUNDS, ...KNOCKOUT].map(tab => (
             <button
               key={tab}

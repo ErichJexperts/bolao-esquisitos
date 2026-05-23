@@ -1,1 +1,12 @@
 @import "tailwindcss";
+
+.scroll-x-hidden {
+  overflow-x: scroll;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scroll-x-hidden::-webkit-scrollbar {
+  display: none;
+}
