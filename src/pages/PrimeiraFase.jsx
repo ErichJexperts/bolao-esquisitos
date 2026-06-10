@@ -55,6 +55,13 @@ function formatDate(dateStr) {
   })
 }
 
+function formatDay(dateStr) {
+  return new Date(dateStr).toLocaleDateString('pt-BR', {
+    timeZone: 'America/Sao_Paulo',
+    weekday: 'long', day: '2-digit', month: 'long',
+  })
+}
+
 const ROW_STYLE = {
   exact:   'bg-green-50 dark:bg-green-900/20 border-l-4 border-green-400',
   correct: 'bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-400',
@@ -256,9 +263,13 @@ export default function PrimeiraFase() {
           <div className="flex items-center gap-1.5 flex-1 min-w-0">
             <Flag team={match.away_team} size={20} />
             <span className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">{match.away_team}</span>
-            <span className="w-4 shrink-0">
-              {isSaving && <Loader2 size={13} className="text-gray-400 animate-spin" />}
-              {!isSaving && isSaved && <Check size={13} className="text-green-500" />}
+            <span className="flex items-center gap-1 shrink-0">
+              {isSaving
+                ? <Loader2 size={13} className="text-gray-400 animate-spin" />
+                : pred
+                  ? <><Check size={13} className="text-green-500" /><span className="text-xs text-green-500 -ml-0.5">salvo</span></>
+                  : null
+              }
             </span>
           </div>
 
@@ -284,6 +295,15 @@ export default function PrimeiraFase() {
   const pontos = finishedMatches.reduce((acc, m) => { const r = getResult(predictions[m.id], m); return acc + (r === 'exact' ? 3 : r === 'correct' ? 1 : 0) }, 0)
   const jogosRestantes = currentMatches.filter(m => !m.is_finished).length
   const totalPontos = matches.reduce((acc, m) => { const r = getResult(predictions[m.id], m); return acc + (r === 'exact' ? 3 : r === 'correct' ? 1 : 0) }, 0)
+
+  const groupedByDay = Object.values(
+    currentMatches.reduce((acc, match) => {
+      const key = new Date(match.match_date).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })
+      if (!acc[key]) acc[key] = { day: key, label: formatDay(match.match_date), matches: [] }
+      acc[key].matches.push(match)
+      return acc
+    }, {})
+  )
 
   return (
     <div className="min-h-[calc(100vh-3.5rem)] bg-gray-50 dark:bg-gray-900 py-8">
@@ -348,8 +368,17 @@ export default function PrimeiraFase() {
         {/* Lista */}
         <div className="min-h-96">
           {currentMatches.length > 0 ? (
-            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl overflow-hidden divide-y divide-gray-100 dark:divide-gray-700">
-              {currentMatches.map(match => <MatchRow key={match.id} match={match} />)}
+            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl overflow-hidden">
+              {groupedByDay.map(({ day, label, matches: dayMatches }, i) => (
+                <div key={day} className={i > 0 ? 'border-t-2 border-gray-100 dark:border-gray-700' : ''}>
+                  <div className="px-4 md:px-5 py-3 bg-gray-50 dark:bg-gray-900/40 border-b border-gray-100 dark:border-gray-700">
+                    <span className="text-sm font-semibold text-gray-600 dark:text-gray-300 capitalize">{label}</span>
+                  </div>
+                  <div className="divide-y divide-gray-100 dark:divide-gray-700">
+                    {dayMatches.map(match => <MatchRow key={match.id} match={match} />)}
+                  </div>
+                </div>
+              ))}
             </div>
           ) : (
             <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-12 text-center">
