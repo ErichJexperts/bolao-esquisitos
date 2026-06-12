@@ -10,23 +10,55 @@ export default function Regras() {
           {/* Pontuação */}
           <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-6">
             <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-4">Pontuação</h2>
+
+            {/* Tabela por fase */}
+            <div className="rounded-xl border border-gray-100 dark:border-gray-700 overflow-hidden mb-4">
+              <div className="grid grid-cols-3 bg-gray-50 dark:bg-gray-700/50 px-4 py-2 text-xs font-semibold text-gray-400 dark:text-gray-500">
+                <span>Fase</span>
+                <span className="text-center text-green-600 dark:text-green-400">Placar exato</span>
+                <span className="text-center text-blue-600 dark:text-blue-400">Resultado certo</span>
+              </div>
+              {[
+                { fase: 'Fase de grupos',             exact: 3, correct: 1 },
+                { fase: '32-avos → Quartas de final', exact: 4, correct: 2 },
+                { fase: 'Semifinais',                 exact: 5, correct: 3 },
+                { fase: 'Final',                      exact: 6, correct: 4 },
+              ].map(({ fase, exact, correct }) => (
+                <div key={fase} className="grid grid-cols-3 px-4 py-3 border-t border-gray-100 dark:border-gray-700 text-sm">
+                  <span className="text-gray-700 dark:text-gray-300 font-medium">{fase}</span>
+                  <span className="text-center font-bold text-green-600 dark:text-green-400">+{exact} pts</span>
+                  <span className="text-center font-bold text-blue-600 dark:text-blue-400">+{correct} pts</span>
+                </div>
+              ))}
+              <div className="px-4 py-2.5 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/30 text-xs text-gray-400 dark:text-gray-500">
+                Resultado errado: <span className="font-semibold text-red-400">0 pts</span> em todas as fases
+              </div>
+            </div>
+
+            {/* Cards explicativos */}
             <div className="space-y-3">
               <div className="flex items-start gap-4 bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-800 rounded-xl p-4">
-                <span className="text-lg font-bold text-green-600 dark:text-green-400 shrink-0 w-16">+3 pts</span>
+                <div className="shrink-0 w-6 h-6 rounded-full bg-green-500 flex items-center justify-center mt-0.5">
+                  <span className="text-white text-xs font-bold">✓</span>
+                </div>
                 <div>
                   <p className="font-semibold text-gray-900 dark:text-white text-sm">Placar exato</p>
                   <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Acertou o placar completo. Ex: chutou 2×1 e deu 2×1.</p>
                 </div>
               </div>
               <div className="flex items-start gap-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-xl p-4">
-                <span className="text-lg font-bold text-blue-600 dark:text-blue-400 shrink-0 w-16">+1 pt</span>
+                <div className="shrink-0 w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center mt-0.5">
+                  <span className="text-white text-xs font-bold">~</span>
+                </div>
                 <div>
                   <p className="font-semibold text-gray-900 dark:text-white text-sm">Resultado correto</p>
                   <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Acertou quem ganhou (ou empate), mas errou o placar.</p>
                 </div>
               </div>
               <div className="flex items-start gap-4 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 rounded-xl p-4">
-                <span className="text-lg font-bold text-red-400 shrink-0 w-16">+0 pts</span>
+                <div className="shrink-0 w-6 h-6 rounded-full bg-red-400 flex items-center justify-center mt-0.5">
+                  <span className="text-white text-xs font-bold">✗</span>
+                </div>
                 <div>
                   <p className="font-semibold text-gray-900 dark:text-white text-sm">Resultado errado</p>
                   <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Errou o resultado. Melhor sorte da próxima.</p>
@@ -49,28 +81,12 @@ export default function Regras() {
           {/* Prêmio */}
           <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-6">
             <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-4">Prêmio 🏆</h2>
-            <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
-              Caso a galera tope, cada participante contribui com <span className="font-semibold text-gray-900 dark:text-white">R$ 5,00</span>. O prêmio é dividido assim:
-            </p>
-            <div className="space-y-2 mb-6">
-              <div className="flex items-center gap-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800 rounded-xl px-4 py-3">
-                <span className="text-xl">🥇</span>
-                <div>
-                  <p className="text-sm font-semibold text-gray-900 dark:text-white">1º lugar — 70% do valor arrecadado</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Ex: 10 participantes → R$ 35,00</p>
-                </div>
+            <div className="flex items-center gap-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800 rounded-xl px-5 py-4">
+              <span className="text-3xl">🥇</span>
+              <div>
+                <p className="text-sm font-semibold text-gray-900 dark:text-white">1º lugar leva tudo</p>
+                <p className="text-2xl font-bold text-amber-600 dark:text-amber-400 mt-0.5">R$ 130,00</p>
               </div>
-              <div className="flex items-center gap-3 bg-gray-50 dark:bg-gray-700 border border-gray-100 dark:border-gray-600 rounded-xl px-4 py-3">
-                <span className="text-xl">🥈</span>
-                <div>
-                  <p className="text-sm font-semibold text-gray-900 dark:text-white">2º lugar — 30% do valor arrecadado</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Ex: 10 participantes → R$ 15,00</p>
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 text-xs text-gray-400 dark:text-gray-500 border-t border-gray-100 dark:border-gray-700 pt-4">
-              <span>Alternativa:</span>
-              <span className="text-gray-600 dark:text-gray-300">Pix fixo de <span className="font-semibold text-gray-900 dark:text-white">R$ 30,00</span> para o 1º lugar, independente do número de participantes.</span>
             </div>
           </div>
 

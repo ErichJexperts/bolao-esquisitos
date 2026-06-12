@@ -76,12 +76,23 @@ select
 
   sum(
     case
-      when not m.is_finished                                         then 0
-      when p.predicted_home = m.home_score
-       and p.predicted_away = m.away_score                          then 3
+      when not m.is_finished then 0
+      when p.predicted_home = m.home_score and p.predicted_away = m.away_score then
+        case
+          when m.round = 'Final'                                                             then 6
+          when m.round = 'Semifinais'                                                        then 5
+          when m.round in ('32-avos', 'Oitavas de final', 'Quartas de final')               then 4
+          else 3
+        end
       when (p.predicted_home > p.predicted_away and m.home_score > m.away_score)
         or (p.predicted_home < p.predicted_away and m.home_score < m.away_score)
-        or (p.predicted_home = p.predicted_away and m.home_score = m.away_score) then 1
+        or (p.predicted_home = p.predicted_away and m.home_score = m.away_score) then
+        case
+          when m.round = 'Final'                                                             then 4
+          when m.round = 'Semifinais'                                                        then 3
+          when m.round in ('32-avos', 'Oitavas de final', 'Quartas de final')               then 2
+          else 1
+        end
       else 0
     end
   )                                   as pontos,

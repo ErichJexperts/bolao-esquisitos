@@ -48,6 +48,13 @@ function isLocked(match) {
   return new Date() >= new Date(match.match_date) || match.is_finished
 }
 
+function getPointValues(round) {
+  if (round === 'Final')                                                    return { exact: 6, correct: 4 }
+  if (round === 'Semifinais')                                               return { exact: 5, correct: 3 }
+  if (['32-avos', 'Oitavas de final', 'Quartas de final'].includes(round)) return { exact: 4, correct: 2 }
+  return { exact: 3, correct: 1 }
+}
+
 function formatDate(dateStr) {
   return new Date(dateStr).toLocaleString('pt-BR', {
     timeZone: 'America/Sao_Paulo',
@@ -69,9 +76,9 @@ const ROW_STYLE = {
 }
 
 const BADGE = {
-  exact:   { label: '+3 pts', cls: 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400' },
-  correct: { label: '+1 pt',  cls: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400'   },
-  wrong:   { label: '0 pts',  cls: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400'       },
+  exact:   { cls: 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400' },
+  correct: { cls: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400'    },
+  wrong:   { cls: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400'        },
 }
 
 export default function PrimeiraFase() {
@@ -170,6 +177,8 @@ export default function PrimeiraFase() {
   function MatchRow({ match }) {
     const pred = predictions[match.id]
     const result = getResult(pred, match)
+    const pts = getPointValues(match.round)
+    const badgeLabel = result === 'exact' ? `+${pts.exact} pts` : result === 'correct' ? `+${pts.correct} pts` : '0 pts'
     const locked = isLocked(match)
     const isSaving = saving.has(match.id)
     const isSaved = saved.has(match.id)
@@ -227,7 +236,7 @@ export default function PrimeiraFase() {
           <div className="shrink-0 flex flex-col gap-0.5 md:w-20">
             {result && (
               <span className={`text-xs font-semibold px-1.5 md:px-2 py-0.5 rounded-full self-start ${BADGE[result].cls}`}>
-                {BADGE[result].label}
+                {badgeLabel}
               </span>
             )}
             {match.is_finished && match.home_score !== null && (
@@ -289,12 +298,13 @@ export default function PrimeiraFase() {
   }
 
   const currentMatches = byRound.find(r => r.round === activeRound)?.matches ?? []
+
   const finishedMatches = currentMatches.filter(m => m.is_finished)
   const acertados = finishedMatches.filter(m => { const r = getResult(predictions[m.id], m); return r === 'exact' || r === 'correct' }).length
   const placaresExatos = finishedMatches.filter(m => getResult(predictions[m.id], m) === 'exact').length
-  const pontos = finishedMatches.reduce((acc, m) => { const r = getResult(predictions[m.id], m); return acc + (r === 'exact' ? 3 : r === 'correct' ? 1 : 0) }, 0)
+  const pontos = finishedMatches.reduce((acc, m) => { const r = getResult(predictions[m.id], m); const { exact, correct } = getPointValues(m.round); return acc + (r === 'exact' ? exact : r === 'correct' ? correct : 0) }, 0)
   const jogosRestantes = currentMatches.filter(m => !m.is_finished).length
-  const totalPontos = matches.reduce((acc, m) => { const r = getResult(predictions[m.id], m); return acc + (r === 'exact' ? 3 : r === 'correct' ? 1 : 0) }, 0)
+  const totalPontos = matches.reduce((acc, m) => { const r = getResult(predictions[m.id], m); const { exact, correct } = getPointValues(m.round); return acc + (r === 'exact' ? exact : r === 'correct' ? correct : 0) }, 0)
 
   const groupedByDay = Object.values(
     currentMatches.reduce((acc, match) => {
