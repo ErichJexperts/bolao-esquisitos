@@ -93,6 +93,7 @@ export default function PrimeiraFase() {
   const [activeRound, setActiveRound] = useState(ROUNDS[0])
   const saveTimers = useRef({})
   const savedTimers = useRef({})
+  const tabInitialized = useRef(false)
 
   useEffect(() => {
     async function load() {
@@ -121,6 +122,22 @@ export default function PrimeiraFase() {
     }
     load()
   }, [user.id])
+
+  useEffect(() => {
+    if (matches.length === 0 || tabInitialized.current) return
+    tabInitialized.current = true
+    const now = new Date()
+    const allRounds = [...ROUNDS, ...KNOCKOUT]
+    const nextRound = allRounds.find(round =>
+      matches.some(m => m.round === round && new Date(m.match_date) > now)
+    )
+    if (nextRound) {
+      setActiveRound(nextRound)
+    } else {
+      const lastRound = [...allRounds].reverse().find(r => matches.some(m => m.round === r))
+      if (lastRound) setActiveRound(lastRound)
+    }
+  }, [matches])
 
   function handleInput(matchId, side, value) {
     const cleaned = value.replace(/\D/g, '').slice(0, 2)
