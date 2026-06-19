@@ -91,6 +91,7 @@ export default function PrimeiraFase() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [activeRound, setActiveRound] = useState(ROUNDS[0])
+  const [rankPosition, setRankPosition] = useState(null)
   const saveTimers = useRef({})
   const savedTimers = useRef({})
   const tabInitialized = useRef(false)
@@ -98,12 +99,17 @@ export default function PrimeiraFase() {
   useEffect(() => {
     async function load() {
       try {
-        const [matchRes, predRes] = await Promise.all([
+        const [matchRes, predRes, rankRes] = await Promise.all([
           supabase.from('matches').select('*').in('round', [...ROUNDS, ...KNOCKOUT]).order('match_date'),
           supabase.from('predictions').select('*').eq('user_id', user.id),
+          supabase.from('ranking').select('user_id'),
         ])
         if (matchRes.error) throw matchRes.error
         if (predRes.error) throw predRes.error
+        if (rankRes.data) {
+          const pos = rankRes.data.findIndex(r => r.user_id === user.id)
+          if (pos !== -1) setRankPosition(pos + 1)
+        }
         if (matchRes.data) setMatches(matchRes.data)
         if (predRes.data) {
           const predMap = {}, inputMap = {}
@@ -344,9 +350,16 @@ export default function PrimeiraFase() {
           </div>
           <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 md:px-6 md:py-4 text-right shrink-0">
             <p className="text-xs text-gray-400 dark:text-gray-500 mb-0.5">Minha pontuação total</p>
-            <p className="text-lg md:text-3xl font-bold text-gray-900 dark:text-white leading-none">
-              {totalPontos} <span className="text-xs md:text-sm font-normal text-gray-400 dark:text-gray-500">pts</span>
-            </p>
+            <div className="flex items-baseline justify-end gap-1.5 leading-none">
+              <span className="text-lg md:text-3xl font-bold text-gray-900 dark:text-white">{totalPontos}</span>
+              <span className="text-xs text-gray-400 dark:text-gray-500">pts</span>
+              {rankPosition && <>
+                <span className="text-xs text-gray-300 dark:text-gray-600">/</span>
+                <span className="text-sm md:text-lg font-bold text-gray-900 dark:text-white">
+                  {rankPosition}°{rankPosition === 1 ? '🥇' : rankPosition === 2 ? '🥈' : rankPosition === 3 ? '🥉' : '🏆'}
+                </span>
+              </>}
+            </div>
           </div>
         </div>
 
