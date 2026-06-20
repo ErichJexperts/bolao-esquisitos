@@ -63,7 +63,7 @@ create index idx_matches_group        on public.matches (group_name);
 -- ============================================================
 -- VIEW: ranking
 -- Mostra pontuação de cada usuário (apelido via join em profiles).
--- Regras: 3 pts placar exato | 1 pt resultado certo | 0 errou
+-- Regras: pontuação por fase (3→6 exato, 1→4 certo), 0 errou
 -- Só conta partidas com is_finished = true.
 -- ============================================================
 create or replace view public.ranking as

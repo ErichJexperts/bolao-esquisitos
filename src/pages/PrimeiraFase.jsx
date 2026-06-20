@@ -81,6 +81,130 @@ const BADGE = {
   wrong:   { cls: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400'        },
 }
 
+function MatchRow({ match, predictions, saving, saved, inputs, handleInput }) {
+  const pred = predictions[match.id]
+  const result = getResult(pred, match)
+  const pts = getPointValues(match.round)
+  const badgeLabel = result === 'exact' ? `+${pts.exact} pts` : result === 'correct' ? `+${pts.correct} pts` : '0 pts'
+  const locked = isLocked(match)
+  const isSaving = saving.has(match.id)
+  const isSaved = saved.has(match.id)
+  const inp = inputs[match.id] || { home: '', away: '' }
+  const noPrediction = match.is_finished && !pred
+
+  const inputCls = `w-8 h-7 md:w-9 md:h-8 text-center text-sm font-semibold border rounded-lg transition ${
+    locked
+      ? 'border-transparent bg-transparent text-gray-700 dark:text-gray-300 cursor-default'
+      : 'border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 dark:text-white focus:outline-none focus:border-gray-400 dark:focus:border-gray-400 focus:bg-white dark:focus:bg-gray-600'
+  }`
+
+  const isKnockout = KNOCKOUT.includes(match.round)
+  const matchLabel = isKnockout ? `Jogo ${match.group_name}` : `Grupo ${match.group_name}`
+
+  const dateInfo = (
+    <span className="text-xs text-gray-400 dark:text-gray-500 capitalize">
+      {formatDate(match.match_date)} · {matchLabel}
+    </span>
+  )
+
+  if (noPrediction) {
+    return (
+      <div className="opacity-60">
+        <div className="flex items-center gap-2 md:gap-4 px-3 md:px-5 pt-2.5 pb-1 md:py-2.5">
+          <div className="shrink-0 w-12 md:w-20">
+            <span className="text-xs text-gray-400 dark:text-gray-500 italic">Sem palpite</span>
+          </div>
+          <div className="flex items-center gap-1.5 flex-1 justify-end min-w-0">
+            <span className="text-sm text-gray-400 dark:text-gray-500 truncate text-right">{match.home_team}</span>
+            <Flag team={match.home_team} size={20} />
+          </div>
+          <div className="shrink-0 w-16 md:w-20" />
+          <div className="flex items-center gap-1.5 flex-1 min-w-0">
+            <Flag team={match.away_team} size={20} />
+            <span className="text-sm text-gray-400 dark:text-gray-500 truncate">{match.away_team}</span>
+          </div>
+          <div className="hidden md:block w-40 shrink-0 text-right">
+            <span className="text-xs text-gray-400 dark:text-gray-500 capitalize">{formatDate(match.match_date)}</span>
+            <br /><span className="text-xs text-gray-400 dark:text-gray-500">{matchLabel}</span>
+            {match.home_score !== null && (
+              <><br /><span className="text-xs text-gray-400 dark:text-gray-500">Placar {match.home_score} × {match.away_score}</span></>
+            )}
+          </div>
+        </div>
+        <div className="md:hidden text-center pb-2">{dateInfo}</div>
+      </div>
+    )
+  }
+
+  return (
+    <div className={`transition ${result ? ROW_STYLE[result] : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'}`}>
+      <div className="flex items-center gap-2 md:gap-4 px-3 md:px-5 pt-2.5 pb-1 md:py-3">
+
+        {/* Badge */}
+        <div className="shrink-0 flex flex-col gap-0.5 md:w-20">
+          {result && (
+            <span className={`text-xs font-semibold px-1.5 md:px-2 py-0.5 rounded-full self-start ${BADGE[result].cls}`}>
+              {badgeLabel}
+            </span>
+          )}
+          {match.is_finished && match.home_score !== null && (
+            <span className="hidden md:inline text-xs text-gray-500 dark:text-gray-400">
+              Placar {match.home_score} × {match.away_score}
+            </span>
+          )}
+        </div>
+
+        {/* Home */}
+        <div className="flex items-center gap-1.5 flex-1 justify-end min-w-0">
+          <span className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate text-right">{match.home_team}</span>
+          <Flag team={match.home_team} size={20} />
+        </div>
+
+        {/* Inputs */}
+        <div className="shrink-0 flex items-center gap-1 relative group/score">
+          <input type="text" inputMode="numeric" value={inp.home}
+            onChange={e => !locked && handleInput(match.id, 'home', e.target.value)}
+            readOnly={locked} className={inputCls} placeholder="" />
+          <span className="text-gray-400 text-sm">×</span>
+          <input type="text" inputMode="numeric" value={inp.away}
+            onChange={e => !locked && handleInput(match.id, 'away', e.target.value)}
+            readOnly={locked} className={inputCls} placeholder="" />
+          {match.is_finished && match.home_score !== null && (
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 dark:bg-gray-600 text-white text-xs rounded-lg whitespace-nowrap opacity-0 group-hover/score:opacity-100 transition-opacity pointer-events-none">
+              Resultado: {match.home_score} × {match.away_score}
+            </div>
+          )}
+        </div>
+
+        {/* Away */}
+        <div className="flex items-center gap-1.5 flex-1 min-w-0">
+          <Flag team={match.away_team} size={20} />
+          <span className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">{match.away_team}</span>
+          <span className="flex items-center gap-1 shrink-0">
+            {isSaving
+              ? <Loader2 size={13} className="text-gray-400 animate-spin" />
+              : pred
+                ? <><Check size={13} className="text-green-500" /><span className="text-xs text-green-500 -ml-0.5">salvo</span></>
+                : null
+            }
+          </span>
+        </div>
+
+        {/* Data — só desktop */}
+        <div className="hidden md:block w-40 shrink-0 text-right">
+          <div className="flex flex-col items-end gap-0.5">
+            <span className="text-xs text-gray-500 dark:text-gray-400 capitalize">{formatDate(match.match_date)}</span>
+            <span className="text-xs text-gray-400 dark:text-gray-500">{matchLabel}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Data — só mobile */}
+      <div className="md:hidden text-center pb-2">{dateInfo}</div>
+    </div>
+  )
+}
+
 export default function PrimeiraFase() {
   const { user } = useAuth()
   const [matches, setMatches] = useState([])
@@ -197,129 +321,6 @@ export default function PrimeiraFase() {
     </div>
   )
 
-  function MatchRow({ match }) {
-    const pred = predictions[match.id]
-    const result = getResult(pred, match)
-    const pts = getPointValues(match.round)
-    const badgeLabel = result === 'exact' ? `+${pts.exact} pts` : result === 'correct' ? `+${pts.correct} pts` : '0 pts'
-    const locked = isLocked(match)
-    const isSaving = saving.has(match.id)
-    const isSaved = saved.has(match.id)
-    const inp = inputs[match.id] || { home: '', away: '' }
-    const noPrediction = match.is_finished && !pred
-
-    const inputCls = `w-8 h-7 md:w-9 md:h-8 text-center text-sm font-semibold border rounded-lg transition ${
-      locked
-        ? 'border-transparent bg-transparent text-gray-700 dark:text-gray-300 cursor-default'
-        : 'border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 dark:text-white focus:outline-none focus:border-gray-400 dark:focus:border-gray-400 focus:bg-white dark:focus:bg-gray-600'
-    }`
-
-    const isKnockout = KNOCKOUT.includes(match.round)
-    const matchLabel = isKnockout ? `Jogo ${match.group_name}` : `Grupo ${match.group_name}`
-
-    const dateInfo = (
-      <span className="text-xs text-gray-400 dark:text-gray-500 capitalize">
-        {formatDate(match.match_date)} · {matchLabel}
-      </span>
-    )
-
-    if (noPrediction) {
-      return (
-        <div className="opacity-60">
-          <div className="flex items-center gap-2 md:gap-4 px-3 md:px-5 pt-2.5 pb-1 md:py-2.5">
-            <div className="shrink-0 w-12 md:w-20">
-              <span className="text-xs text-gray-400 dark:text-gray-500 italic">Sem palpite</span>
-            </div>
-            <div className="flex items-center gap-1.5 flex-1 justify-end min-w-0">
-              <span className="text-sm text-gray-400 dark:text-gray-500 truncate text-right">{match.home_team}</span>
-              <Flag team={match.home_team} size={20} />
-            </div>
-            <div className="shrink-0 flex items-center gap-1 text-sm font-semibold text-gray-500 dark:text-gray-400 w-16 md:w-20 justify-center">
-              {match.home_score} × {match.away_score}
-            </div>
-            <div className="flex items-center gap-1.5 flex-1 min-w-0">
-              <Flag team={match.away_team} size={20} />
-              <span className="text-sm text-gray-400 dark:text-gray-500 truncate">{match.away_team}</span>
-            </div>
-            <div className="hidden md:block w-40 shrink-0 text-right">
-              <span className="text-xs text-gray-400 dark:text-gray-500 capitalize">{formatDate(match.match_date)}</span>
-              <br /><span className="text-xs text-gray-400 dark:text-gray-500">{matchLabel}</span>
-            </div>
-          </div>
-          <div className="md:hidden text-center pb-2">{dateInfo}</div>
-        </div>
-      )
-    }
-
-    return (
-      <div className={`transition ${result ? ROW_STYLE[result] : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'}`}>
-        <div className="flex items-center gap-2 md:gap-4 px-3 md:px-5 pt-2.5 pb-1 md:py-3">
-
-          {/* Badge */}
-          <div className="shrink-0 flex flex-col gap-0.5 md:w-20">
-            {result && (
-              <span className={`text-xs font-semibold px-1.5 md:px-2 py-0.5 rounded-full self-start ${BADGE[result].cls}`}>
-                {badgeLabel}
-              </span>
-            )}
-            {match.is_finished && match.home_score !== null && (
-              <span className="hidden md:inline text-xs text-gray-500 dark:text-gray-400">
-                Placar {match.home_score} × {match.away_score}
-              </span>
-            )}
-          </div>
-
-          {/* Home */}
-          <div className="flex items-center gap-1.5 flex-1 justify-end min-w-0">
-            <span className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate text-right">{match.home_team}</span>
-            <Flag team={match.home_team} size={20} />
-          </div>
-
-          {/* Inputs */}
-          <div className="shrink-0 flex items-center gap-1 relative group/score">
-            <input type="text" inputMode="numeric" value={inp.home}
-              onChange={e => !locked && handleInput(match.id, 'home', e.target.value)}
-              readOnly={locked} className={inputCls} placeholder="" />
-            <span className="text-gray-400 text-sm">×</span>
-            <input type="text" inputMode="numeric" value={inp.away}
-              onChange={e => !locked && handleInput(match.id, 'away', e.target.value)}
-              readOnly={locked} className={inputCls} placeholder="" />
-            {match.is_finished && match.home_score !== null && (
-              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 dark:bg-gray-600 text-white text-xs rounded-lg whitespace-nowrap opacity-0 group-hover/score:opacity-100 transition-opacity pointer-events-none">
-                Resultado: {match.home_score} × {match.away_score}
-              </div>
-            )}
-          </div>
-
-          {/* Away */}
-          <div className="flex items-center gap-1.5 flex-1 min-w-0">
-            <Flag team={match.away_team} size={20} />
-            <span className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">{match.away_team}</span>
-            <span className="flex items-center gap-1 shrink-0">
-              {isSaving
-                ? <Loader2 size={13} className="text-gray-400 animate-spin" />
-                : pred
-                  ? <><Check size={13} className="text-green-500" /><span className="text-xs text-green-500 -ml-0.5">salvo</span></>
-                  : null
-              }
-            </span>
-          </div>
-
-          {/* Data — só desktop */}
-          <div className="hidden md:block w-40 shrink-0 text-right">
-            <div className="flex flex-col items-end gap-0.5">
-              <span className="text-xs text-gray-500 dark:text-gray-400 capitalize">{formatDate(match.match_date)}</span>
-              <span className="text-xs text-gray-400 dark:text-gray-500">{matchLabel}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Data — só mobile */}
-        <div className="md:hidden text-center pb-2">{dateInfo}</div>
-      </div>
-    )
-  }
-
   const currentMatches = byRound.find(r => r.round === activeRound)?.matches ?? []
 
   const finishedMatches = currentMatches.filter(m => m.is_finished)
@@ -415,7 +416,12 @@ export default function PrimeiraFase() {
                     <span className="text-sm font-semibold text-gray-600 dark:text-gray-300 capitalize">{label}</span>
                   </div>
                   <div className="divide-y divide-gray-100 dark:divide-gray-700">
-                    {dayMatches.map(match => <MatchRow key={match.id} match={match} />)}
+                    {dayMatches.map(match => (
+                    <MatchRow key={match.id} match={match}
+                      predictions={predictions} saving={saving} saved={saved}
+                      inputs={inputs} handleInput={handleInput}
+                    />
+                  ))}
                   </div>
                 </div>
               ))}
