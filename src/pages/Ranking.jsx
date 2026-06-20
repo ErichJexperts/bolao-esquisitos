@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Eye, Loader2 } from 'lucide-react'
+import { Eye, Loader2, ChevronUp, ChevronDown } from 'lucide-react'
 import { useAuth } from '../lib/AuthContext'
 import { supabase } from '../lib/supabase'
 
@@ -76,15 +76,37 @@ function PreviewTooltip({ data, loading, pos }) {
 export default function Ranking() {
   const { user } = useAuth()
   const [rows, setRows] = useState([])
+  const [deltas, setDeltas] = useState({})
   const [loading, setLoading] = useState(true)
   const [preview, setPreview] = useState({ userId: null, data: null, loading: false, pos: { x: 0, y: 0 } })
   const cache = useRef({})
   const hideTimer = useRef(null)
+  const snapInitialized = useRef(false)
 
   useEffect(() => {
     async function load() {
       const { data, error } = await supabase.from('ranking').select('*')
-      if (data) setRows(data)
+      if (data) {
+        setRows(data)
+
+        if (!snapInitialized.current) {
+          snapInitialized.current = true
+          const SNAP_KEY = 'bolao_ranking_snapshot'
+          const prev = JSON.parse(localStorage.getItem(SNAP_KEY) || '{}')
+          const computed = {}
+          data.forEach((row, i) => {
+            const cur = i + 1
+            if (prev[row.user_id] && prev[row.user_id] !== cur) {
+              computed[row.user_id] = prev[row.user_id] - cur // positivo = subiu
+            }
+          })
+          setDeltas(computed)
+
+          const snapshot = {}
+          data.forEach((row, i) => { snapshot[row.user_id] = i + 1 })
+          localStorage.setItem(SNAP_KEY, JSON.stringify(snapshot))
+        }
+      }
       if (error) console.error('[Ranking]', error)
       setLoading(false)
     }
@@ -149,6 +171,7 @@ export default function Ranking() {
               const pos = i + 1
               const resultadosCertos = (row.placares_exatos ?? 0) + (row.resultados_corretos ?? 0)
               const isHovered = preview.userId === row.user_id
+              const delta = deltas[row.user_id] ?? 0
 
               return (
                 <div
@@ -177,6 +200,12 @@ export default function Ranking() {
                       </button>
                       {isHovered && <PreviewTooltip data={preview.data} loading={preview.loading} pos={preview.pos} />}
                     </div>
+                    {delta !== 0 && (
+                      <span className={`flex items-center gap-0.5 shrink-0 ${delta > 0 ? 'text-green-500 dark:text-green-400' : 'text-red-400 dark:text-red-400'}`}>
+                        {delta > 0 ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                        <span className="text-xs font-medium text-gray-400 dark:text-gray-500">{Math.abs(delta)}</span>
+                      </span>
+                    )}
                   </div>
 
                   <div className="hidden md:flex items-center justify-center">
