@@ -85,16 +85,18 @@ export default function Ranking() {
 
   useEffect(() => {
     async function load() {
-      const { data, error } = await supabase.from('ranking').select('*')
-      if (data) {
-        setRows(data)
+      const [rankRes, snapRes] = await Promise.all([
+        supabase.from('ranking').select('*'),
+        supabase.from('ranking_snapshot').select('positions').eq('id', 1).single(),
+      ])
+      if (rankRes.data) {
+        setRows(rankRes.data)
 
         if (!snapInitialized.current) {
           snapInitialized.current = true
-          const SNAP_KEY = 'bolao_ranking_snapshot'
-          const prev = JSON.parse(localStorage.getItem(SNAP_KEY) || '{}')
+          const prev = snapRes.data?.positions ?? {}
           const computed = {}
-          data.forEach((row, i) => {
+          rankRes.data.forEach((row, i) => {
             const cur = i + 1
             if (prev[row.user_id] && prev[row.user_id] !== cur) {
               computed[row.user_id] = prev[row.user_id] - cur // positivo = subiu
@@ -103,7 +105,7 @@ export default function Ranking() {
           setDeltas(computed)
         }
       }
-      if (error) console.error('[Ranking]', error)
+      if (rankRes.error) console.error('[Ranking]', rankRes.error)
       setLoading(false)
     }
     load()
@@ -133,11 +135,12 @@ export default function Ranking() {
 
   const isErich = rows.find(r => r.user_id === user.id)?.username === 'Erich'
 
-  function resetSnapshot() {
-    const SNAP_KEY = 'bolao_ranking_snapshot'
-    const snapshot = {}
-    rows.forEach((row, i) => { snapshot[row.user_id] = i + 1 })
-    localStorage.setItem(SNAP_KEY, JSON.stringify(snapshot))
+  async function resetSnapshot() {
+    const positions = {}
+    rows.forEach((row, i) => { positions[row.user_id] = i + 1 })
+    await supabase.from('ranking_snapshot')
+      .update({ positions, updated_at: new Date().toISOString() })
+      .eq('id', 1)
     setDeltas({})
   }
 

@@ -198,3 +198,32 @@ create policy "predictions_update_own"
 create policy "predictions_delete_own"
   on public.predictions for delete
   using (auth.uid() = user_id);
+
+
+-- ============================================================
+-- TABELA: ranking_snapshot
+-- Armazena o snapshot das posições do ranking para exibir
+-- setas de subida/descida. Linha única (id=1), atualizada
+-- manualmente pelo admin (botão "Atualizar ranking").
+-- ============================================================
+create table public.ranking_snapshot (
+  id         integer  primary key default 1,
+  positions  jsonb    not null default '{}',
+  updated_at timestamptz not null default now(),
+  constraint single_row check (id = 1)
+);
+
+insert into public.ranking_snapshot (id, positions) values (1, '{}');
+
+alter table public.ranking_snapshot enable row level security;
+
+create policy "snapshot_select_all"
+  on public.ranking_snapshot for select
+  using (true);
+
+create policy "snapshot_update_auth"
+  on public.ranking_snapshot for update
+  using (auth.role() = 'authenticated');
+
+grant select on public.ranking_snapshot to authenticated, anon;
+grant update on public.ranking_snapshot to authenticated;
