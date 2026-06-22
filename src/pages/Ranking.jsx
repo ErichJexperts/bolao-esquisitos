@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Eye, Loader2, ChevronUp, ChevronDown, RotateCcw } from 'lucide-react'
+import { Eye, Loader2, ChevronUp, ChevronDown } from 'lucide-react'
 import { useAuth } from '../lib/AuthContext'
 import { supabase } from '../lib/supabase'
 
@@ -133,17 +133,6 @@ export default function Ranking() {
     )
   }
 
-  const isErich = rows.find(r => r.user_id === user.id)?.username === 'Erich'
-
-  async function resetSnapshot() {
-    const positions = {}
-    rows.forEach((row, i) => { positions[row.user_id] = i + 1 })
-    await supabase.from('ranking_snapshot')
-      .update({ positions, updated_at: new Date().toISOString() })
-      .eq('id', 1)
-    setDeltas({})
-  }
-
   function hidePreview() {
     hideTimer.current = setTimeout(() => {
       setPreview({ userId: null, data: null, loading: false })
@@ -159,18 +148,7 @@ export default function Ranking() {
   return (
     <div className="min-h-[calc(100vh-3.5rem)] bg-gray-50 dark:bg-gray-900 py-8">
       <div className="max-w-5xl mx-auto px-4 md:px-8">
-        <div className="flex items-center justify-between mb-1">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Ranking</h1>
-          {isErich && (
-            <button
-              onClick={resetSnapshot}
-              className="flex items-center gap-1.5 text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition"
-            >
-              <RotateCcw size={12} />
-              Atualizar ranking
-            </button>
-          )}
-        </div>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">Ranking</h1>
         <p className="text-gray-500 dark:text-gray-400 text-sm mb-8">Classificação geral — todas as etapas combinadas.</p>
 
         {rows.length === 0 ? (

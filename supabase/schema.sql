@@ -227,3 +227,42 @@ create policy "snapshot_update_auth"
 
 grant select on public.ranking_snapshot to authenticated, anon;
 grant update on public.ranking_snapshot to authenticated;
+
+
+-- ============================================================
+-- TRIGGER: salva snapshot do ranking automaticamente
+-- Dispara BEFORE UPDATE em matches sempre que placar ou
+-- is_finished mudam — captura o ranking ANTES da alteração
+-- para que as setas mostrem a mudança corretamente.
+-- ============================================================
+create or replace function public.auto_save_ranking_snapshot()
+returns trigger
+language plpgsql
+security definer
+as $$
+begin
+  if (old.is_finished is distinct from new.is_finished)
+     or (old.home_score is distinct from new.home_score)
+     or (old.away_score is distinct from new.away_score)
+  then
+    update public.ranking_snapshot
+    set positions = (
+      select jsonb_object_agg(user_id::text, rn)
+      from (
+        select user_id,
+               row_number() over (
+                 order by pontos desc, placares_exatos desc, resultados_corretos desc
+               ) as rn
+        from public.ranking
+      ) x
+    ),
+    updated_at = now()
+    where id = 1;
+  end if;
+  return new;
+end;
+$$;
+
+create trigger trg_ranking_snapshot
+before update on public.matches
+for each row execute function public.auto_save_ranking_snapshot();
