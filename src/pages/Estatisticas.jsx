@@ -101,21 +101,11 @@ export default function Estatisticas() {
   }, [])
 
   // ── derived stats ────────────────────────────────────────────
-  const bestDays = (() => {
-    const totals = {}
-    const leaders = {}
-    rawDailyData.forEach(d => {
-      const pts = Number(d.points_on_day)
-      totals[d.match_day] = (totals[d.match_day] || 0) + pts
-      if (!leaders[d.match_day] || pts > (leaders[d.match_day]?.pts ?? 0)) {
-        leaders[d.match_day] = { username: d.username, pts }
-      }
-    })
-    return Object.entries(totals)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5)
-      .map(([day, total]) => ({ day: formatDay(day), total, leader: leaders[day] }))
-  })()
+  const bestDays = [...rawDailyData]
+    .filter(d => Number(d.points_on_day) > 0)
+    .sort((a, b) => Number(b.points_on_day) - Number(a.points_on_day))
+    .slice(0, 5)
+    .map(d => ({ day: formatDay(d.match_day), username: d.username, pts: Number(d.points_on_day) }))
 
   const hitRateRanking  = [...statsData].sort((a, b) => Number(b.hit_rate)    - Number(a.hit_rate))
   const exactRanking    = [...statsData].sort((a, b) => Number(b.exact_scores) - Number(a.exact_scores))
@@ -270,21 +260,19 @@ export default function Estatisticas() {
 
                 <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-5">
                   <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Melhores dias</p>
-                  <p className="text-xs text-gray-400 dark:text-gray-500 mb-5">Dias com mais pontos somados no bolão inteiro</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-500 mb-5">Maiores pontuações individuais em um único dia</p>
                   {bestDays.length === 0 ? (
                     <p className="text-xs text-gray-400 dark:text-gray-500">Nenhum dado ainda.</p>
                   ) : (
                     <div className="space-y-3">
                       {bestDays.map((d, i) => (
-                        <div key={d.day} className="flex items-center justify-between">
+                        <div key={i} className="flex items-center justify-between">
                           <div className="flex items-center gap-2.5">
                             <span className="text-xs text-gray-400 w-4 text-right shrink-0">{i + 1}</span>
-                            <span className="text-sm font-medium text-gray-800 dark:text-gray-200">{d.day}</span>
+                            <span className="text-sm text-gray-400 dark:text-gray-500 shrink-0">{d.day}</span>
+                            <span className="text-sm font-medium" style={{ color: userColor(d.username) }}>{d.username}</span>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs" style={{ color: userColor(d.leader.username) }}>↑ {d.leader.username}</span>
-                            <span className="text-sm font-bold text-gray-900 dark:text-white">{d.total} pts</span>
-                          </div>
+                          <span className="text-sm font-bold text-gray-900 dark:text-white">+{d.pts} pts</span>
                         </div>
                       ))}
                     </div>
@@ -373,10 +361,10 @@ export default function Estatisticas() {
                       <div className="flex items-start gap-3 bg-purple-50 dark:bg-purple-900/20 rounded-xl px-3 py-2.5">
                         <span className="text-base mt-0.5">🔥</span>
                         <div>
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Melhor dia do bolão</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Melhor dia individual</p>
                           <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                            {bestDays[0].day}
-                            <span className="font-normal text-gray-500 dark:text-gray-400"> — {bestDays[0].total} pts somados no total</span>
+                            {bestDays[0].username}
+                            <span className="font-normal text-gray-500 dark:text-gray-400"> — +{bestDays[0].pts} pts em {bestDays[0].day}</span>
                           </p>
                         </div>
                       </div>
