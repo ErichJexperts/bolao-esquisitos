@@ -8,6 +8,7 @@ import Cadastro from './pages/Cadastro'
 import Home from './pages/Home'
 import MeusPalpites from './pages/PrimeiraFase'
 import Ranking from './pages/Ranking'
+import Estatisticas from './pages/Estatisticas'
 import Regras from './pages/Regras'
 import Perfil from './pages/Perfil'
 import Admin from './pages/Admin'
@@ -28,6 +29,7 @@ export default function App() {
               <Route path="/"              element={<Home />} />
               <Route path="/meus-palpites" element={<MeusPalpites />} />
               <Route path="/ranking"       element={<Ranking />} />
+              <Route path="/estatisticas"  element={<Estatisticas />} />
               <Route path="/regras"        element={<Regras />} />
               <Route path="/perfil"        element={<Perfil />} />
               <Route path="/admin"         element={<Admin />} />

@@ -266,3 +266,123 @@ $$;
 create trigger trg_ranking_snapshot
 before update on public.matches
 for each row execute function public.auto_save_ranking_snapshot();
+
+
+-- ============================================================
+-- FUNCTION: get_daily_points
+-- Retorna pontos por usuário por dia de jogo (para o gráfico
+-- de estatísticas). SECURITY DEFINER para bypassar o RLS de
+-- predictions e agregar dados de todos os usuários.
+-- Rodar no dashboard Supabase:
+-- ============================================================
+create or replace function public.get_daily_points()
+returns table (
+  user_id      uuid,
+  username     text,
+  match_day    date,
+  points_on_day bigint
+)
+language sql
+security definer
+as $$
+  select
+    p.user_id,
+    coalesce(pr.username, 'Anônimo') as username,
+    date(m.match_date at time zone 'America/Sao_Paulo') as match_day,
+    sum(
+      case
+        when not m.is_finished then 0
+        when p.predicted_home = m.home_score and p.predicted_away = m.away_score then
+          case
+            when m.round = 'Final'                                                             then 6
+            when m.round = 'Semifinais'                                                        then 5
+            when m.round in ('32-avos', 'Oitavas de final', 'Quartas de final')               then 4
+            else 3
+          end
+        when (p.predicted_home > p.predicted_away and m.home_score > m.away_score)
+          or (p.predicted_home < p.predicted_away and m.home_score < m.away_score)
+          or (p.predicted_home = p.predicted_away and m.home_score = m.away_score) then
+          case
+            when m.round = 'Final'                                                             then 4
+            when m.round = 'Semifinais'                                                        then 3
+            when m.round in ('32-avos', 'Oitavas de final', 'Quartas de final')               then 2
+            else 1
+          end
+        else 0
+      end
+    )::bigint as points_on_day
+  from public.predictions p
+  join public.matches m on m.id = p.match_id
+  left join public.profiles pr on pr.id = p.user_id
+  where m.is_finished = true
+  group by p.user_id, pr.username, date(m.match_date at time zone 'America/Sao_Paulo')
+  order by match_day;
+$$;
+
+grant execute on function public.get_daily_points() to authenticated;
+grant execute on function public.get_daily_points() to anon;
+
+
+-- ============================================================
+-- FUNCTION: get_user_stats
+-- Retorna estatísticas agregadas por usuário para a página de
+-- Estatísticas: total de jogos, placares exatos, resultados
+-- corretos, near-misses (errou por 1 gol) e taxa de acerto %.
+-- SECURITY DEFINER para bypassar o RLS de predictions.
+-- ============================================================
+create or replace function public.get_user_stats()
+returns table (
+  user_id         uuid,
+  username        text,
+  total_games     bigint,
+  exact_scores    bigint,
+  correct_results bigint,
+  wrong_results   bigint,
+  near_misses     bigint,
+  hit_rate        numeric
+)
+language sql
+security definer
+as $$
+  select
+    p.user_id,
+    coalesce(pr.username, 'Anônimo') as username,
+    count(*) filter (where m.is_finished) as total_games,
+    count(*) filter (where m.is_finished
+      and p.predicted_home = m.home_score
+      and p.predicted_away = m.away_score) as exact_scores,
+    count(*) filter (where m.is_finished
+      and not (p.predicted_home = m.home_score and p.predicted_away = m.away_score)
+      and ((p.predicted_home > p.predicted_away and m.home_score > m.away_score)
+        or (p.predicted_home < p.predicted_away and m.home_score < m.away_score)
+        or (p.predicted_home = p.predicted_away and m.home_score = m.away_score))
+    ) as correct_results,
+    count(*) filter (where m.is_finished
+      and not (p.predicted_home = m.home_score and p.predicted_away = m.away_score)
+      and not ((p.predicted_home > p.predicted_away and m.home_score > m.away_score)
+        or (p.predicted_home < p.predicted_away and m.home_score < m.away_score)
+        or (p.predicted_home = p.predicted_away and m.home_score = m.away_score))
+    ) as wrong_results,
+    count(*) filter (where m.is_finished
+      and not (p.predicted_home = m.home_score and p.predicted_away = m.away_score)
+      and abs(p.predicted_home - m.home_score) + abs(p.predicted_away - m.away_score) = 1
+    ) as near_misses,
+    case
+      when count(*) filter (where m.is_finished) = 0 then 0
+      else round(
+        count(*) filter (where m.is_finished and (
+          (p.predicted_home = m.home_score and p.predicted_away = m.away_score)
+          or (p.predicted_home > p.predicted_away and m.home_score > m.away_score)
+          or (p.predicted_home < p.predicted_away and m.home_score < m.away_score)
+          or (p.predicted_home = p.predicted_away and m.home_score = m.away_score)
+        ))::numeric * 100.0 /
+        count(*) filter (where m.is_finished)::numeric, 1)
+    end as hit_rate
+  from public.predictions p
+  join public.matches m on m.id = p.match_id
+  left join public.profiles pr on pr.id = p.user_id
+  group by p.user_id, pr.username;
+$$;
+
+grant execute on function public.get_user_stats() to authenticated;
+grant execute on function public.get_user_stats() to anon;

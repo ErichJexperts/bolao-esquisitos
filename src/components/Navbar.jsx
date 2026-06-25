@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { NavLink } from 'react-router-dom'
-import { Home, LayoutGrid, Trophy, CircleUser, LogOut, Globe, ScrollText, Menu, X, Sun, Moon } from 'lucide-react'
+import { Home, LayoutGrid, Trophy, BarChart2, CircleUser, LogOut, Globe, ScrollText, Menu, X, Sun, Moon } from 'lucide-react'
 import { useAuth } from '../lib/AuthContext'
 import { useTheme } from '../lib/ThemeContext'
 
@@ -8,6 +8,7 @@ const NAV_ITEMS = [
   { to: '/',              label: 'Início',          Icon: Home        },
   { to: '/meus-palpites', label: 'Meus palpites',   Icon: LayoutGrid  },
   { to: '/ranking',       label: 'Ranking',         Icon: Trophy      },
+  { to: '/estatisticas',  label: 'Estatísticas',    Icon: BarChart2,  desktopOnly: true },
   { to: '/regras',        label: 'Regras e Prêmio', Icon: ScrollText  },
   { to: '/perfil',        label: 'Meu perfil',      Icon: CircleUser  },
 ]
@@ -107,7 +108,7 @@ export default function Navbar() {
       >
         <div className="flex flex-col h-full py-3">
           <div className="flex-1 px-3 space-y-0.5">
-            {NAV_ITEMS.map(({ to, label, Icon }) => (
+            {NAV_ITEMS.filter(item => !item.desktopOnly).map(({ to, label, Icon }) => (
               <NavLink key={to} to={to} end={to === '/'} onClick={() => setOpen(false)} className={drawerLinkCls}>
                 <Icon size={18} strokeWidth={1.75} />
                 <span>{label}</span>

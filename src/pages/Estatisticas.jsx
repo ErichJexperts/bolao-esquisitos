@@ -1,0 +1,437 @@
+import { useState, useEffect } from 'react'
+import {
+  LineChart, Line, XAxis, YAxis, CartesianGrid,
+  Tooltip, ResponsiveContainer,
+} from 'recharts'
+import { Maximize2, X } from 'lucide-react'
+import { supabase } from '../lib/supabase'
+import { useTheme } from '../lib/ThemeContext'
+
+const COLORS = [
+  '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6',
+  '#ec4899', '#06b6d4', '#84cc16', '#f97316', '#6366f1',
+  '#14b8a6', '#a855f7',
+]
+
+function formatDay(dateStr) {
+  const [, month, day] = dateStr.split('-')
+  return `${day}/${month}`
+}
+
+function CustomTooltip({ active, payload, label }) {
+  if (!active || !payload || !payload.length) return null
+  const sorted = [...payload].sort((a, b) => b.value - a.value)
+  return (
+    <div style={{
+      backgroundColor: '#111827', borderRadius: 10, padding: '8px 12px',
+      fontSize: 12, minWidth: 160,
+    }}>
+      <p style={{ color: '#9ca3af', fontWeight: 600, marginBottom: 6 }}>{label}</p>
+      {sorted.map((entry, i) => (
+        <div key={entry.name} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+          <span style={{ color: '#6b7280', minWidth: 16, textAlign: 'right', fontSize: 11 }}>{i + 1}.</span>
+          <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: entry.color, flexShrink: 0 }} />
+          <span style={{ color: '#d1d5db', flex: 1 }}>{entry.name}</span>
+          <span style={{ color: '#f9fafb', fontWeight: 700, marginLeft: 8 }}>{entry.value} pts</span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+export default function Estatisticas() {
+  const { dark } = useTheme()
+  const [chartData, setChartData] = useState([])
+  const [users, setUsers] = useState([])
+  const [rawDailyData, setRawDailyData] = useState([])
+  const [statsData, setStatsData] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [hoveredUser, setHoveredUser] = useState(null)
+  const [maximized, setMaximized] = useState(false)
+
+  useEffect(() => {
+    async function load() {
+      const [dailyRes, statsRes] = await Promise.all([
+        supabase.rpc('get_daily_points'),
+        supabase.rpc('get_user_stats'),
+      ])
+      if (dailyRes.error) console.error('[Estatisticas daily]', dailyRes.error)
+      if (statsRes.error) console.error('[Estatisticas stats]', statsRes.error)
+
+      const daily = dailyRes.data ?? []
+      const stats = statsRes.data ?? []
+
+      setRawDailyData(daily)
+      setStatsData(stats)
+
+      if (daily.length > 0) {
+        const allDates = [...new Set(daily.map(d => d.match_day))].sort()
+
+        const userMap = new Map()
+        daily.forEach(d => {
+          if (!userMap.has(d.user_id)) userMap.set(d.user_id, d.username)
+        })
+        const uniqueUsers = [...userMap.entries()].map(([id, username]) => ({ id, username }))
+        setUsers(uniqueUsers)
+
+        const byUserDate = {}
+        daily.forEach(d => {
+          if (!byUserDate[d.user_id]) byUserDate[d.user_id] = {}
+          byUserDate[d.user_id][d.match_day] = Number(d.points_on_day)
+        })
+
+        const cumulative = {}
+        uniqueUsers.forEach(u => { cumulative[u.id] = 0 })
+
+        const built = allDates.map(date => {
+          const point = { date: formatDay(date) }
+          uniqueUsers.forEach(u => {
+            cumulative[u.id] += byUserDate[u.id]?.[date] ?? 0
+            point[u.username] = cumulative[u.id]
+          })
+          return point
+        })
+
+        setChartData(built)
+      }
+
+      setLoading(false)
+    }
+    load()
+  }, [])
+
+  // ── derived stats ────────────────────────────────────────────
+  const bestDays = (() => {
+    const totals = {}
+    const leaders = {}
+    rawDailyData.forEach(d => {
+      const pts = Number(d.points_on_day)
+      totals[d.match_day] = (totals[d.match_day] || 0) + pts
+      if (!leaders[d.match_day] || pts > (leaders[d.match_day]?.pts ?? 0)) {
+        leaders[d.match_day] = { username: d.username, pts }
+      }
+    })
+    return Object.entries(totals)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([day, total]) => ({ day: formatDay(day), total, leader: leaders[day] }))
+  })()
+
+  const hitRateRanking  = [...statsData].sort((a, b) => Number(b.hit_rate)    - Number(a.hit_rate))
+  const exactRanking    = [...statsData].sort((a, b) => Number(b.exact_scores) - Number(a.exact_scores))
+  const nearMissRanking = [...statsData].sort((a, b) => Number(b.near_misses)  - Number(a.near_misses))
+
+  // ── chart helpers ────────────────────────────────────────────
+  const gridColor = dark ? '#374151' : '#e5e7eb'
+  const axisColor = dark ? '#6b7280' : '#9ca3af'
+
+  const maxVal = users.length > 0
+    ? Math.max(...users.flatMap(u => chartData.map(d => d[u.username] ?? 0)), 0)
+    : 0
+  const yTicks = Array.from({ length: maxVal + 2 }, (_, i) => i)
+
+  const userColor = (username) => {
+    const idx = users.findIndex(u => u.username === username)
+    return idx >= 0 ? COLORS[idx % COLORS.length] : '#9ca3af'
+  }
+
+  const renderLines = () =>
+    users.map((u, i) => (
+      <Line
+        key={u.id}
+        type="monotone"
+        dataKey={u.username}
+        stroke={COLORS[i % COLORS.length]}
+        strokeWidth={hoveredUser === u.username ? 3 : 1.5}
+        strokeOpacity={hoveredUser && hoveredUser !== u.username ? 0.2 : 1}
+        dot={false}
+        activeDot={{ r: 5, strokeWidth: 0 }}
+      />
+    ))
+
+  const renderChart = (height) => (
+    <ResponsiveContainer width="100%" height={height}>
+      <LineChart data={chartData} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
+        <CartesianGrid strokeDasharray="3 3" stroke={gridColor} vertical={false} />
+        <XAxis dataKey="date" tick={{ fontSize: 11, fill: axisColor }} axisLine={{ stroke: gridColor }} tickLine={false} />
+        <YAxis tick={{ fontSize: 11, fill: axisColor }} axisLine={false} tickLine={false} width={28} ticks={yTicks} />
+        <Tooltip content={<CustomTooltip />} cursor={{ stroke: gridColor }} />
+        {renderLines()}
+      </LineChart>
+    </ResponsiveContainer>
+  )
+
+  const renderLegend = () => (
+    <div className="flex flex-wrap gap-2 mb-6">
+      {users.map((u, i) => (
+        <button
+          key={u.id}
+          onMouseEnter={() => setHoveredUser(u.username)}
+          onMouseLeave={() => setHoveredUser(null)}
+          style={{ opacity: hoveredUser && hoveredUser !== u.username ? 0.35 : 1 }}
+          className="flex items-center gap-2 px-2.5 py-1 rounded-lg text-sm transition-opacity"
+        >
+          <span className="shrink-0 rounded-sm" style={{ backgroundColor: COLORS[i % COLORS.length], width: 12, height: 3 }} />
+          <span className="text-gray-700 dark:text-gray-300 font-medium">{u.username}</span>
+        </button>
+      ))}
+    </div>
+  )
+
+  // ── loading ──────────────────────────────────────────────────
+  if (loading) return (
+    <div className="min-h-[calc(100vh-3.5rem)] bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+      <div className="w-6 h-6 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
+    </div>
+  )
+
+  const hasStats  = statsData.length > 0
+  const hasChart  = chartData.length > 0
+
+  return (
+    <div className="min-h-[calc(100vh-3.5rem)] bg-gray-50 dark:bg-gray-900 py-8">
+      <div className="max-w-5xl mx-auto px-4 md:px-8">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">Estatísticas</h1>
+        <p className="text-gray-500 dark:text-gray-400 text-sm mb-8">Evolução e curiosidades do bolão.</p>
+
+        {/* Mobile */}
+        <div className="md:hidden bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-12 text-center">
+          <p className="text-gray-400 dark:text-gray-500 text-sm">Disponível apenas no computador.</p>
+        </div>
+
+        {/* Desktop */}
+        <div className="hidden md:flex flex-col gap-5">
+
+          {/* GRÁFICO */}
+          {!hasChart ? (
+            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-12 text-center">
+              <p className="text-gray-400 dark:text-gray-500 text-sm">Nenhum jogo computado ainda.</p>
+            </div>
+          ) : (
+            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-5 md:p-6">
+              <div className="flex items-center justify-between mb-5">
+                <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">Pontuação acumulada por dia de jogo</p>
+                <button
+                  onClick={() => setMaximized(true)}
+                  className="flex items-center gap-1.5 text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition"
+                >
+                  <Maximize2 size={14} />
+                </button>
+              </div>
+              {renderLegend()}
+              {renderChart(400)}
+            </div>
+          )}
+
+          {hasStats && (
+            <>
+              {/* TAXA DE ACERTO */}
+              <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-5 md:p-6">
+                <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Taxa de acerto</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500 mb-5">Percentual de acertos (resultado certo + placar exato) sobre jogos finalizados</p>
+                <div className="space-y-4">
+                  {hitRateRanking.map((s, i) => (
+                    <div key={s.user_id} className="flex items-center gap-3">
+                      <span className="text-xs font-semibold text-gray-400 w-4 text-right shrink-0">{i + 1}</span>
+                      <span
+                        className="text-sm font-semibold w-36 shrink-0 truncate"
+                        style={{ color: userColor(s.username) }}
+                      >{s.username}</span>
+                      <div className="flex-1 h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                        <div
+                          className="h-full rounded-full"
+                          style={{ width: `${Math.min(Number(s.hit_rate), 100)}%`, backgroundColor: userColor(s.username) }}
+                        />
+                      </div>
+                      <span className="text-sm font-bold text-gray-900 dark:text-white w-12 text-right shrink-0">{s.hit_rate}%</span>
+                      <span className="text-xs text-gray-400 dark:text-gray-500 shrink-0 w-16 text-right">{Number(s.total_games)} jogos</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* QUASE LÁ + MELHORES DIAS */}
+              <div className="grid grid-cols-2 gap-5">
+                <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-5">
+                  <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Quase lá...</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-500 mb-5">Quantas vezes errou o placar por exatamente 1 gol</p>
+                  <div className="space-y-3">
+                    {nearMissRanking.map((s, i) => (
+                      <div key={s.user_id} className="flex items-center justify-between">
+                        <div className="flex items-center gap-2.5">
+                          <span className="text-xs text-gray-400 w-4 text-right shrink-0">{i + 1}</span>
+                          <span className="text-sm font-medium" style={{ color: userColor(s.username) }}>{s.username}</span>
+                        </div>
+                        <span className="text-sm font-bold text-gray-900 dark:text-white">{Number(s.near_misses)}x</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-5">
+                  <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Melhores dias</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-500 mb-5">Dias com mais pontos somados no bolão inteiro</p>
+                  {bestDays.length === 0 ? (
+                    <p className="text-xs text-gray-400 dark:text-gray-500">Nenhum dado ainda.</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {bestDays.map((d, i) => (
+                        <div key={d.day} className="flex items-center justify-between">
+                          <div className="flex items-center gap-2.5">
+                            <span className="text-xs text-gray-400 w-4 text-right shrink-0">{i + 1}</span>
+                            <span className="text-sm font-medium text-gray-800 dark:text-gray-200">{d.day}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs" style={{ color: userColor(d.leader.username) }}>↑ {d.leader.username}</span>
+                            <span className="text-sm font-bold text-gray-900 dark:text-white">{d.total} pts</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* MINI RANKINGS + RECORDES */}
+              <div className="grid grid-cols-2 gap-5">
+                {/* MINI RANKINGS */}
+                <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-5 flex flex-col gap-6">
+                  <div>
+                    <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Ranking por placares exatos</p>
+                    <p className="text-xs text-gray-400 dark:text-gray-500 mb-4">Quem mais acertou o placar completo</p>
+                    <div className="space-y-2.5">
+                      {exactRanking.map((s, i) => (
+                        <div key={s.user_id} className="flex items-center justify-between">
+                          <div className="flex items-center gap-2.5">
+                            <span className="text-xs text-gray-400 w-4 text-right shrink-0">{i + 1}</span>
+                            <span className="text-sm font-medium" style={{ color: userColor(s.username) }}>{s.username}</span>
+                          </div>
+                          <span className="text-sm font-bold text-gray-900 dark:text-white">{Number(s.exact_scores)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Ranking por taxa de acerto</p>
+                    <p className="text-xs text-gray-400 dark:text-gray-500 mb-4">% de jogos com resultado ou placar correto</p>
+                    <div className="space-y-2.5">
+                      {hitRateRanking.map((s, i) => (
+                        <div key={s.user_id} className="flex items-center justify-between">
+                          <div className="flex items-center gap-2.5">
+                            <span className="text-xs text-gray-400 w-4 text-right shrink-0">{i + 1}</span>
+                            <span className="text-sm font-medium" style={{ color: userColor(s.username) }}>{s.username}</span>
+                          </div>
+                          <span className="text-sm font-bold text-gray-900 dark:text-white">{s.hit_rate}%</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* RECORDES */}
+                <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-5">
+                  <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-5">Recordes e curiosidades</p>
+                  <div className="space-y-3">
+                    {hitRateRanking[0] && (
+                      <div className="flex items-start gap-3 bg-green-50 dark:bg-green-900/20 rounded-xl px-3 py-2.5">
+                        <span className="text-base mt-0.5">🎯</span>
+                        <div>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Mais preciso do bolão</p>
+                          <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                            {hitRateRanking[0].username}
+                            <span className="font-normal text-gray-500 dark:text-gray-400"> — {hitRateRanking[0].hit_rate}% de acerto</span>
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    {exactRanking[0] && (
+                      <div className="flex items-start gap-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl px-3 py-2.5">
+                        <span className="text-base mt-0.5">✨</span>
+                        <div>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Rei do placar exato</p>
+                          <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                            {exactRanking[0].username}
+                            <span className="font-normal text-gray-500 dark:text-gray-400"> — {Number(exactRanking[0].exact_scores)} placares exatos</span>
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    {nearMissRanking[0] && Number(nearMissRanking[0].near_misses) > 0 && (
+                      <div className="flex items-start gap-3 bg-amber-50 dark:bg-amber-900/20 rounded-xl px-3 py-2.5">
+                        <span className="text-base mt-0.5">😬</span>
+                        <div>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Rei do quase-lá</p>
+                          <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                            {nearMissRanking[0].username}
+                            <span className="font-normal text-gray-500 dark:text-gray-400"> — {Number(nearMissRanking[0].near_misses)}x errou por 1 gol</span>
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    {bestDays[0] && (
+                      <div className="flex items-start gap-3 bg-purple-50 dark:bg-purple-900/20 rounded-xl px-3 py-2.5">
+                        <span className="text-base mt-0.5">🔥</span>
+                        <div>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Melhor dia do bolão</p>
+                          <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                            {bestDays[0].day}
+                            <span className="font-normal text-gray-500 dark:text-gray-400"> — {bestDays[0].total} pts somados no total</span>
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    {hitRateRanking.length > 0 && (() => {
+                      const worst = [...hitRateRanking].reverse()[0]
+                      return worst && Number(worst.total_games) >= 3 ? (
+                        <div className="flex items-start gap-3 bg-red-50 dark:bg-red-900/20 rounded-xl px-3 py-2.5">
+                          <span className="text-base mt-0.5">💀</span>
+                          <div>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Baixa taxa de acerto</p>
+                            <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                              {worst.username}
+                              <span className="font-normal text-gray-500 dark:text-gray-400"> — {worst.hit_rate}% de acerto</span>
+                            </p>
+                          </div>
+                        </div>
+                      ) : null
+                    })()}
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Modal fullscreen */}
+      {maximized && (
+        <div className="fixed inset-0 z-50 bg-black/70 flex items-stretch justify-stretch p-3 md:p-5">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl flex flex-col w-full p-5 md:p-7">
+            <div className="flex items-center justify-between mb-4 shrink-0">
+              <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">Pontuação acumulada por dia de jogo</p>
+              <button
+                onClick={() => setMaximized(false)}
+                className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            {renderLegend()}
+            <div className="flex-1 min-h-0">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={chartData} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={gridColor} vertical={false} />
+                  <XAxis dataKey="date" tick={{ fontSize: 11, fill: axisColor }} axisLine={{ stroke: gridColor }} tickLine={false} />
+                  <YAxis tick={{ fontSize: 11, fill: axisColor }} axisLine={false} tickLine={false} width={28} ticks={yTicks} />
+                  <Tooltip content={<CustomTooltip />} cursor={{ stroke: gridColor }} />
+                  {renderLines()}
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
