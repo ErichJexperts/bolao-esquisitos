@@ -73,9 +73,89 @@ function PreviewTooltip({ data, loading, pos }) {
   )
 }
 
+function RankingTable({ rows, user, deltas, showDeltas, preview, showPreview, hidePreview }) {
+  if (rows.length === 0) return (
+    <p className="text-sm text-gray-400 dark:text-gray-500">Nenhum jogo do mata-mata computado ainda.</p>
+  )
+
+  return (
+    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl overflow-hidden">
+      <div className="grid grid-cols-[2.5rem_1fr_6rem] md:grid-cols-[3rem_1fr_10rem_10rem_10rem] px-4 md:px-5 py-3 border-b border-gray-100 dark:border-gray-700">
+        <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">#</span>
+        <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Apelido</span>
+        <span className="hidden md:block text-xs font-semibold text-gray-400 uppercase tracking-wide text-center">Resultados certos</span>
+        <span className="hidden md:block text-xs font-semibold text-gray-400 uppercase tracking-wide text-center">Placares exatos</span>
+        <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide text-right">Pontuação</span>
+      </div>
+
+      {rows.map((row, i) => {
+        const isMe = row.user_id === user.id
+        const pos = i + 1
+        const resultadosCertos = (row.placares_exatos ?? 0) + (row.resultados_corretos ?? 0)
+        const isHovered = preview.userId === row.user_id
+        const delta = showDeltas ? (deltas[row.user_id] ?? 0) : 0
+
+        return (
+          <div
+            key={row.user_id}
+            className={`grid grid-cols-[2.5rem_1fr_6rem] md:grid-cols-[3rem_1fr_10rem_10rem_10rem] px-4 md:px-5 py-3.5 border-b border-gray-100 dark:border-gray-700 last:border-0 transition ${
+              isMe ? 'bg-green-50 dark:bg-green-900/20' : 'hover:bg-gray-50 dark:hover:bg-gray-700'
+            }`}
+          >
+            <div className="flex items-center">
+              <span className={`text-sm font-bold ${
+                pos === 1 ? 'text-amber-500' : pos === 2 ? 'text-gray-400' : pos === 3 ? 'text-orange-400' : 'text-gray-400 dark:text-gray-500'
+              }`}>
+                {pos === 1 ? '🥇' : pos === 2 ? '🥈' : pos === 3 ? '🥉' : pos}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="text-sm font-medium text-gray-900 dark:text-white truncate">{row.username ?? 'Anônimo'}</span>
+              {isMe && <span className="text-xs text-green-600 dark:text-green-400 font-medium shrink-0">você</span>}
+              {showDeltas && (
+                <div className="hidden md:block shrink-0"
+                  onMouseEnter={e => showPreview(row.user_id, e)}
+                  onMouseLeave={hidePreview}
+                >
+                  <button className="flex items-center justify-center w-5 h-5 rounded-full text-gray-300 dark:text-gray-600 hover:text-gray-500 dark:hover:text-gray-400 transition">
+                    <Eye size={13} />
+                  </button>
+                  {isHovered && <PreviewTooltip data={preview.data} loading={preview.loading} pos={preview.pos} />}
+                </div>
+              )}
+              {delta !== 0 && (
+                <span className={`flex items-center gap-0.5 shrink-0 ${delta > 0 ? 'text-green-500 dark:text-green-400' : 'text-red-400'}`}>
+                  {delta > 0 ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                  <span className="text-xs font-medium text-gray-400 dark:text-gray-500">{Math.abs(delta)}</span>
+                </span>
+              )}
+            </div>
+
+            <div className="hidden md:flex items-center justify-center">
+              <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">{resultadosCertos}</span>
+            </div>
+
+            <div className="hidden md:flex items-center justify-center">
+              <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">{row.placares_exatos ?? 0}</span>
+            </div>
+
+            <div className="flex items-center justify-end">
+              <span className="text-sm font-bold text-gray-900 dark:text-white">{row.pontos ?? 0}</span>
+              <span className="text-xs text-gray-400 dark:text-gray-500 ml-1">pts</span>
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 export default function Ranking() {
   const { user } = useAuth()
+  const [tab, setTab] = useState('geral')
   const [rows, setRows] = useState([])
+  const [knockoutRows, setKnockoutRows] = useState([])
   const [deltas, setDeltas] = useState({})
   const [loading, setLoading] = useState(true)
   const [preview, setPreview] = useState({ userId: null, data: null, loading: false, pos: { x: 0, y: 0 } })
@@ -85,13 +165,14 @@ export default function Ranking() {
 
   useEffect(() => {
     async function load() {
-      const [rankRes, snapRes] = await Promise.all([
+      const [rankRes, snapRes, knockoutRes] = await Promise.all([
         supabase.from('ranking').select('*'),
         supabase.from('ranking_snapshot').select('positions').eq('id', 1).single(),
+        supabase.rpc('get_knockout_ranking'),
       ])
+
       if (rankRes.data) {
         setRows(rankRes.data)
-
         if (!snapInitialized.current) {
           snapInitialized.current = true
           const prev = snapRes.data?.positions ?? {}
@@ -99,13 +180,17 @@ export default function Ranking() {
           rankRes.data.forEach((row, i) => {
             const cur = i + 1
             if (prev[row.user_id] && prev[row.user_id] !== cur) {
-              computed[row.user_id] = prev[row.user_id] - cur // positivo = subiu
+              computed[row.user_id] = prev[row.user_id] - cur
             }
           })
           setDeltas(computed)
         }
       }
       if (rankRes.error) console.error('[Ranking]', rankRes.error)
+
+      if (knockoutRes.data) setKnockoutRows(knockoutRes.data)
+      if (knockoutRes.error) console.error('[Ranking knockout]', knockoutRes.error)
+
       setLoading(false)
     }
     load()
@@ -145,83 +230,50 @@ export default function Ranking() {
     </div>
   )
 
+  const tabCls = (t) =>
+    `px-4 py-1.5 rounded-lg text-sm font-medium transition ${
+      tab === t
+        ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+        : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+    }`
+
   return (
     <div className="min-h-[calc(100vh-3.5rem)] bg-gray-50 dark:bg-gray-900 py-8">
       <div className="max-w-5xl mx-auto px-4 md:px-8">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">Ranking</h1>
-        <p className="text-gray-500 dark:text-gray-400 text-sm mb-8">Classificação geral — todas as etapas combinadas.</p>
+        <p className="text-gray-500 dark:text-gray-400 text-sm mb-6">
+          {tab === 'geral' ? 'Classificação geral — todas as etapas combinadas.' : 'Classificação apenas dos jogos do mata-mata.'}
+        </p>
 
-        {rows.length === 0 ? (
-          <p className="text-sm text-gray-400 dark:text-gray-500">Nenhum palpite registrado ainda.</p>
+        <div className="flex gap-1 mb-6 bg-gray-100 dark:bg-gray-800 p-1 rounded-xl w-fit">
+          <button onClick={() => setTab('geral')} className={tabCls('geral')}>Geral</button>
+          <button onClick={() => setTab('mata-mata')} className={tabCls('mata-mata')}>Mata-mata</button>
+        </div>
+
+        {tab === 'geral' ? (
+          rows.length === 0 ? (
+            <p className="text-sm text-gray-400 dark:text-gray-500">Nenhum palpite registrado ainda.</p>
+          ) : (
+            <RankingTable
+              rows={rows}
+              user={user}
+              deltas={deltas}
+              showDeltas={true}
+              preview={preview}
+              showPreview={showPreview}
+              hidePreview={hidePreview}
+            />
+          )
         ) : (
-          <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl overflow-hidden">
-            {/* Header */}
-            <div className="grid grid-cols-[2.5rem_1fr_6rem] md:grid-cols-[3rem_1fr_10rem_10rem_10rem] px-4 md:px-5 py-3 border-b border-gray-100 dark:border-gray-700">
-              <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">#</span>
-              <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Apelido</span>
-              <span className="hidden md:block text-xs font-semibold text-gray-400 uppercase tracking-wide text-center">Resultados certos</span>
-              <span className="hidden md:block text-xs font-semibold text-gray-400 uppercase tracking-wide text-center">Placares exatos</span>
-              <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide text-right">Pontuação</span>
-            </div>
-
-            {rows.map((row, i) => {
-              const isMe = row.user_id === user.id
-              const pos = i + 1
-              const resultadosCertos = (row.placares_exatos ?? 0) + (row.resultados_corretos ?? 0)
-              const isHovered = preview.userId === row.user_id
-              const delta = deltas[row.user_id] ?? 0
-
-              return (
-                <div
-                  key={row.user_id}
-                  className={`grid grid-cols-[2.5rem_1fr_6rem] md:grid-cols-[3rem_1fr_10rem_10rem_10rem] px-4 md:px-5 py-3.5 border-b border-gray-100 dark:border-gray-700 last:border-0 transition ${
-                    isMe ? 'bg-green-50 dark:bg-green-900/20' : 'hover:bg-gray-50 dark:hover:bg-gray-700'
-                  }`}
-                >
-                  <div className="flex items-center">
-                    <span className={`text-sm font-bold ${
-                      pos === 1 ? 'text-amber-500' : pos === 2 ? 'text-gray-400' : pos === 3 ? 'text-orange-400' : 'text-gray-400 dark:text-gray-500'
-                    }`}>
-                      {pos === 1 ? '🥇' : pos === 2 ? '🥈' : pos === 3 ? '🥉' : pos}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className="text-sm font-medium text-gray-900 dark:text-white truncate">{row.username ?? 'Anônimo'}</span>
-                    {isMe && <span className="text-xs text-green-600 dark:text-green-400 font-medium shrink-0">você</span>}
-                    <div className="hidden md:block shrink-0"
-                      onMouseEnter={e => showPreview(row.user_id, e)}
-                      onMouseLeave={hidePreview}
-                    >
-                      <button className="flex items-center justify-center w-5 h-5 rounded-full text-gray-300 dark:text-gray-600 hover:text-gray-500 dark:hover:text-gray-400 transition">
-                        <Eye size={13} />
-                      </button>
-                      {isHovered && <PreviewTooltip data={preview.data} loading={preview.loading} pos={preview.pos} />}
-                    </div>
-                    {delta !== 0 && (
-                      <span className={`flex items-center gap-0.5 shrink-0 ${delta > 0 ? 'text-green-500 dark:text-green-400' : 'text-red-400 dark:text-red-400'}`}>
-                        {delta > 0 ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
-                        <span className="text-xs font-medium text-gray-400 dark:text-gray-500">{Math.abs(delta)}</span>
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="hidden md:flex items-center justify-center">
-                    <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">{resultadosCertos}</span>
-                  </div>
-
-                  <div className="hidden md:flex items-center justify-center">
-                    <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">{row.placares_exatos ?? 0}</span>
-                  </div>
-
-                  <div className="flex items-center justify-end">
-                    <span className="text-sm font-bold text-gray-900 dark:text-white">{row.pontos ?? 0}</span>
-                    <span className="text-xs text-gray-400 dark:text-gray-500 ml-1">pts</span>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
+          <RankingTable
+            rows={knockoutRows}
+            user={user}
+            deltas={{}}
+            showDeltas={false}
+            preview={preview}
+            showPreview={showPreview}
+            hidePreview={hidePreview}
+          />
         )}
       </div>
     </div>
