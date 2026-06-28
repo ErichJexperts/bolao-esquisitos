@@ -294,37 +294,19 @@ export default function Estatisticas() {
               {/* MINI RANKINGS + RECORDES */}
               <div className="grid grid-cols-2 gap-5">
                 {/* MINI RANKINGS */}
-                <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-5 flex flex-col gap-6">
-                  <div>
-                    <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Ranking por placares exatos</p>
-                    <p className="text-xs text-gray-400 dark:text-gray-500 mb-4">Quem mais acertou o placar completo</p>
-                    <div className="space-y-2.5">
-                      {exactRanking.map((s, i) => (
-                        <div key={s.user_id} className="flex items-center justify-between">
-                          <div className="flex items-center gap-2.5">
-                            <span className="text-xs text-gray-400 w-4 text-right shrink-0">{i + 1}</span>
-                            <span className="text-sm font-medium" style={{ color: userColor(s.username) }}>{s.username}</span>
-                          </div>
-                          <span className="text-sm font-bold text-gray-900 dark:text-white">{Number(s.exact_scores)}</span>
+                <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-5">
+                  <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Ranking por placares exatos</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-500 mb-4">Quem mais acertou o placar completo</p>
+                  <div className="space-y-2.5">
+                    {exactRanking.map((s, i) => (
+                      <div key={s.user_id} className="flex items-center justify-between">
+                        <div className="flex items-center gap-2.5">
+                          <span className="text-xs text-gray-400 w-4 text-right shrink-0">{i + 1}</span>
+                          <span className="text-sm font-medium" style={{ color: userColor(s.username) }}>{s.username}</span>
                         </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div>
-                    <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Ranking por taxa de acerto</p>
-                    <p className="text-xs text-gray-400 dark:text-gray-500 mb-4">% de jogos com resultado ou placar correto</p>
-                    <div className="space-y-2.5">
-                      {hitRateRanking.map((s, i) => (
-                        <div key={s.user_id} className="flex items-center justify-between">
-                          <div className="flex items-center gap-2.5">
-                            <span className="text-xs text-gray-400 w-4 text-right shrink-0">{i + 1}</span>
-                            <span className="text-sm font-medium" style={{ color: userColor(s.username) }}>{s.username}</span>
-                          </div>
-                          <span className="text-sm font-bold text-gray-900 dark:text-white">{s.hit_rate}%</span>
-                        </div>
-                      ))}
-                    </div>
+                        <span className="text-sm font-bold text-gray-900 dark:text-white">{Number(s.exact_scores)}</span>
+                      </div>
+                    ))}
                   </div>
                 </div>
 
