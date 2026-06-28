@@ -135,6 +135,19 @@ export default function Estatisticas() {
     return Object.values(totals).reduce((best, cur) => cur.pts > best.pts ? cur : best)
   })()
 
+  // Campeão do mata-mata: pontos apenas a partir dos 32-avos (28/06 em diante)
+  const knockoutChampion = (() => {
+    const knockoutData = rawDailyData.filter(d => d.match_day >= '2026-06-28')
+    if (knockoutData.length === 0) return null
+    const totals = {}
+    knockoutData.forEach(d => {
+      const pts = Number(d.points_on_day)
+      if (!totals[d.user_id]) totals[d.user_id] = { username: d.username, pts: 0 }
+      totals[d.user_id].pts += pts
+    })
+    return Object.values(totals).reduce((best, cur) => cur.pts > best.pts ? cur : best)
+  })()
+
   // ── chart helpers ────────────────────────────────────────────
   const gridColor = dark ? '#374151' : '#e5e7eb'
   const axisColor = dark ? '#6b7280' : '#9ca3af'
@@ -221,6 +234,7 @@ export default function Estatisticas() {
             const worst = hitRateRanking.length > 0 ? [...hitRateRanking].reverse()[0] : null
             const records = [
               groupStageChampion && { icon: '👑', username: groupStageChampion.username, label: 'Campeão da 1ª fase', value: `${groupStageChampion.pts} pts` },
+              knockoutChampion && { icon: '⚔️', username: knockoutChampion.username, label: 'Campeão do mata-mata', value: `${knockoutChampion.pts} pts` },
               hitRateRanking[0] && { icon: '🎯', username: hitRateRanking[0].username, label: 'Mais preciso do bolão', value: `${hitRateRanking[0].hit_rate}% de acerto` },
               exactRanking[0] && { icon: '✨', username: exactRanking[0].username, label: 'Rei do placar exato', value: `${Number(exactRanking[0].exact_scores)} placares exatos` },
               nearMissRanking[0] && Number(nearMissRanking[0].near_misses) > 0 && { icon: '😬', username: nearMissRanking[0].username, label: 'Rei do quase-lá', value: `${Number(nearMissRanking[0].near_misses)}x errou por 1 gol` },
