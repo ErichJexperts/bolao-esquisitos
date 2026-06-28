@@ -111,6 +111,17 @@ export default function Estatisticas() {
   const exactRanking    = [...statsData].sort((a, b) => Number(b.exact_scores) - Number(a.exact_scores))
   const nearMissRanking = [...statsData].sort((a, b) => Number(b.near_misses)  - Number(a.near_misses))
 
+  const currentLeader = (() => {
+    if (chartData.length === 0 || users.length === 0) return null
+    const last = chartData[chartData.length - 1]
+    let best = null
+    users.forEach(u => {
+      const pts = last[u.username] ?? 0
+      if (!best || pts > best.pts) best = { username: u.username, pts }
+    })
+    return best
+  })()
+
   // ── chart helpers ────────────────────────────────────────────
   const gridColor = dark ? '#374151' : '#e5e7eb'
   const axisColor = dark ? '#6b7280' : '#9ca3af'
@@ -321,6 +332,18 @@ export default function Estatisticas() {
                 <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-5">
                   <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-5">Recordes e curiosidades</p>
                   <div className="space-y-3">
+                    {currentLeader && (
+                      <div className="flex items-start gap-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-xl px-3 py-2.5">
+                        <span className="text-base mt-0.5">🏆</span>
+                        <div>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Campeão da fase de grupos</p>
+                          <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                            {currentLeader.username}
+                            <span className="font-normal text-gray-500 dark:text-gray-400"> — {currentLeader.pts} pts</span>
+                          </p>
+                        </div>
+                      </div>
+                    )}
                     {hitRateRanking[0] && (
                       <div className="flex items-start gap-3 bg-green-50 dark:bg-green-900/20 rounded-xl px-3 py-2.5">
                         <span className="text-base mt-0.5">🎯</span>
