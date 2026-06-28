@@ -225,7 +225,7 @@ export default function Estatisticas() {
               exactRanking[0] && { icon: '✨', username: exactRanking[0].username, label: 'Rei do placar exato', value: `${Number(exactRanking[0].exact_scores)} placares exatos` },
               nearMissRanking[0] && Number(nearMissRanking[0].near_misses) > 0 && { icon: '😬', username: nearMissRanking[0].username, label: 'Rei do quase-lá', value: `${Number(nearMissRanking[0].near_misses)}x errou por 1 gol` },
               bestDays[0] && { icon: '🔥', username: bestDays[0].username, label: 'Melhor dia individual', value: `+${bestDays[0].pts} pts em ${bestDays[0].day}` },
-              worst && Number(worst.total_games) >= 3 && { icon: '💀', username: worst.username, label: 'Mais azarado do bolão', value: `${worst.hit_rate}% de acerto` },
+              worst && Number(worst.total_games) >= 3 && { icon: '💀', username: worst.username, label: 'Baixa taxa de acerto', value: `${worst.hit_rate}% de acerto` },
             ].filter(Boolean)
 
             return records.length > 0 ? (
