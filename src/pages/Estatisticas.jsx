@@ -220,7 +220,7 @@ export default function Estatisticas() {
           {hasStats && (() => {
             const worst = hitRateRanking.length > 0 ? [...hitRateRanking].reverse()[0] : null
             const records = [
-              groupStageChampion && { icon: '👑', username: groupStageChampion.username, label: 'Campeão da fase de grupos', value: `${groupStageChampion.pts} pts` },
+              groupStageChampion && { icon: '👑', username: groupStageChampion.username, label: 'Rei da 1ª fase', value: `${groupStageChampion.pts} pts` },
               hitRateRanking[0] && { icon: '🎯', username: hitRateRanking[0].username, label: 'Mais preciso do bolão', value: `${hitRateRanking[0].hit_rate}% de acerto` },
               exactRanking[0] && { icon: '✨', username: exactRanking[0].username, label: 'Rei do placar exato', value: `${Number(exactRanking[0].exact_scores)} placares exatos` },
               nearMissRanking[0] && Number(nearMissRanking[0].near_misses) > 0 && { icon: '😬', username: nearMissRanking[0].username, label: 'Rei do quase-lá', value: `${Number(nearMissRanking[0].near_misses)}x errou por 1 gol` },
