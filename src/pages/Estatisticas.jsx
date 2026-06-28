@@ -207,7 +207,7 @@ export default function Estatisticas() {
           {hasStats && (() => {
             const worst = hitRateRanking.length > 0 ? [...hitRateRanking].reverse()[0] : null
             const records = [
-              currentLeader && { icon: '🏆', username: currentLeader.username, label: 'Campeão da fase de grupos', value: `${currentLeader.pts} pts` },
+              currentLeader && { icon: '👑', username: currentLeader.username, label: 'Campeão da fase de grupos', value: `${currentLeader.pts} pts` },
               hitRateRanking[0] && { icon: '🎯', username: hitRateRanking[0].username, label: 'Mais preciso do bolão', value: `${hitRateRanking[0].hit_rate}% de acerto` },
               exactRanking[0] && { icon: '✨', username: exactRanking[0].username, label: 'Rei do placar exato', value: `${Number(exactRanking[0].exact_scores)} placares exatos` },
               nearMissRanking[0] && Number(nearMissRanking[0].near_misses) > 0 && { icon: '😬', username: nearMissRanking[0].username, label: 'Rei do quase-lá', value: `${Number(nearMissRanking[0].near_misses)}x errou por 1 gol` },
@@ -218,13 +218,17 @@ export default function Estatisticas() {
             return records.length > 0 ? (
               <div>
                 <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-3">Recordes e curiosidades</p>
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-5 gap-4">
                   {records.map((r, i) => (
-                    <div key={i} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-5 flex flex-col items-center text-center">
-                      <span className="text-4xl mb-3">{r.icon}</span>
-                      <p className="text-sm font-semibold mb-1" style={{ color: userColor(r.username) }}>{r.username}</p>
-                      <p className="text-xs text-gray-400 dark:text-gray-500 leading-snug">{r.label}</p>
-                      <p className="text-xs font-semibold text-gray-600 dark:text-gray-300 mt-0.5">{r.value}</p>
+                    <div key={i} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-4 flex flex-col gap-3">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xl leading-none">{r.icon}</span>
+                        <p className="text-xs font-semibold text-gray-600 dark:text-gray-300 leading-snug">{r.label}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold leading-tight" style={{ color: userColor(r.username) }}>{r.username}</p>
+                        <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{r.value}</p>
+                      </div>
                     </div>
                   ))}
                 </div>
