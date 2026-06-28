@@ -203,6 +203,35 @@ export default function Estatisticas() {
         {/* Desktop */}
         <div className="hidden md:flex flex-col gap-5">
 
+          {/* RECORDES E CURIOSIDADES */}
+          {hasStats && (() => {
+            const worst = hitRateRanking.length > 0 ? [...hitRateRanking].reverse()[0] : null
+            const records = [
+              currentLeader && { icon: '🏆', username: currentLeader.username, label: 'Campeão da fase de grupos', value: `${currentLeader.pts} pts` },
+              hitRateRanking[0] && { icon: '🎯', username: hitRateRanking[0].username, label: 'Mais preciso do bolão', value: `${hitRateRanking[0].hit_rate}% de acerto` },
+              exactRanking[0] && { icon: '✨', username: exactRanking[0].username, label: 'Rei do placar exato', value: `${Number(exactRanking[0].exact_scores)} placares exatos` },
+              nearMissRanking[0] && Number(nearMissRanking[0].near_misses) > 0 && { icon: '😬', username: nearMissRanking[0].username, label: 'Rei do quase-lá', value: `${Number(nearMissRanking[0].near_misses)}x errou por 1 gol` },
+              bestDays[0] && { icon: '🔥', username: bestDays[0].username, label: 'Melhor dia individual', value: `+${bestDays[0].pts} pts em ${bestDays[0].day}` },
+              worst && Number(worst.total_games) >= 3 && { icon: '💀', username: worst.username, label: 'Mais azarado do bolão', value: `${worst.hit_rate}% de acerto` },
+            ].filter(Boolean)
+
+            return records.length > 0 ? (
+              <div>
+                <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-3">Recordes e curiosidades</p>
+                <div className="grid grid-cols-3 gap-4">
+                  {records.map((r, i) => (
+                    <div key={i} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-5 flex flex-col items-center text-center">
+                      <span className="text-4xl mb-3">{r.icon}</span>
+                      <p className="text-sm font-semibold mb-1" style={{ color: userColor(r.username) }}>{r.username}</p>
+                      <p className="text-xs text-gray-400 dark:text-gray-500 leading-snug">{r.label}</p>
+                      <p className="text-xs font-semibold text-gray-600 dark:text-gray-300 mt-0.5">{r.value}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null
+          })()}
+
           {/* GRÁFICO */}
           {!hasChart ? (
             <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-12 text-center">
@@ -291,105 +320,20 @@ export default function Estatisticas() {
                 </div>
               </div>
 
-              {/* MINI RANKINGS + RECORDES */}
-              <div className="grid grid-cols-2 gap-5">
-                {/* MINI RANKINGS */}
-                <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-5">
-                  <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Ranking por placares exatos</p>
-                  <p className="text-xs text-gray-400 dark:text-gray-500 mb-4">Quem mais acertou o placar completo</p>
-                  <div className="space-y-2.5">
-                    {exactRanking.map((s, i) => (
-                      <div key={s.user_id} className="flex items-center justify-between">
-                        <div className="flex items-center gap-2.5">
-                          <span className="text-xs text-gray-400 w-4 text-right shrink-0">{i + 1}</span>
-                          <span className="text-sm font-medium" style={{ color: userColor(s.username) }}>{s.username}</span>
-                        </div>
-                        <span className="text-sm font-bold text-gray-900 dark:text-white">{Number(s.exact_scores)}</span>
+              {/* MINI RANKING POR PLACARES EXATOS */}
+              <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-5">
+                <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Ranking por placares exatos</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500 mb-4">Quem mais acertou o placar completo</p>
+                <div className="space-y-2.5">
+                  {exactRanking.map((s, i) => (
+                    <div key={s.user_id} className="flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <span className="text-xs text-gray-400 w-4 text-right shrink-0">{i + 1}</span>
+                        <span className="text-sm font-medium" style={{ color: userColor(s.username) }}>{s.username}</span>
                       </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* RECORDES */}
-                <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-5">
-                  <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-5">Recordes e curiosidades</p>
-                  <div className="space-y-3">
-                    {currentLeader && (
-                      <div className="flex items-start gap-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-xl px-3 py-2.5">
-                        <span className="text-base mt-0.5">🏆</span>
-                        <div>
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Campeão da fase de grupos</p>
-                          <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                            {currentLeader.username}
-                            <span className="font-normal text-gray-500 dark:text-gray-400"> — {currentLeader.pts} pts</span>
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                    {hitRateRanking[0] && (
-                      <div className="flex items-start gap-3 bg-green-50 dark:bg-green-900/20 rounded-xl px-3 py-2.5">
-                        <span className="text-base mt-0.5">🎯</span>
-                        <div>
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Mais preciso do bolão</p>
-                          <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                            {hitRateRanking[0].username}
-                            <span className="font-normal text-gray-500 dark:text-gray-400"> — {hitRateRanking[0].hit_rate}% de acerto</span>
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                    {exactRanking[0] && (
-                      <div className="flex items-start gap-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl px-3 py-2.5">
-                        <span className="text-base mt-0.5">✨</span>
-                        <div>
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Rei do placar exato</p>
-                          <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                            {exactRanking[0].username}
-                            <span className="font-normal text-gray-500 dark:text-gray-400"> — {Number(exactRanking[0].exact_scores)} placares exatos</span>
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                    {nearMissRanking[0] && Number(nearMissRanking[0].near_misses) > 0 && (
-                      <div className="flex items-start gap-3 bg-amber-50 dark:bg-amber-900/20 rounded-xl px-3 py-2.5">
-                        <span className="text-base mt-0.5">😬</span>
-                        <div>
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Rei do quase-lá</p>
-                          <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                            {nearMissRanking[0].username}
-                            <span className="font-normal text-gray-500 dark:text-gray-400"> — {Number(nearMissRanking[0].near_misses)}x errou por 1 gol</span>
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                    {bestDays[0] && (
-                      <div className="flex items-start gap-3 bg-purple-50 dark:bg-purple-900/20 rounded-xl px-3 py-2.5">
-                        <span className="text-base mt-0.5">🔥</span>
-                        <div>
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Melhor dia individual</p>
-                          <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                            {bestDays[0].username}
-                            <span className="font-normal text-gray-500 dark:text-gray-400"> — +{bestDays[0].pts} pts em {bestDays[0].day}</span>
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                    {hitRateRanking.length > 0 && (() => {
-                      const worst = [...hitRateRanking].reverse()[0]
-                      return worst && Number(worst.total_games) >= 3 ? (
-                        <div className="flex items-start gap-3 bg-red-50 dark:bg-red-900/20 rounded-xl px-3 py-2.5">
-                          <span className="text-base mt-0.5">💀</span>
-                          <div>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Baixa taxa de acerto</p>
-                            <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                              {worst.username}
-                              <span className="font-normal text-gray-500 dark:text-gray-400"> — {worst.hit_rate}% de acerto</span>
-                            </p>
-                          </div>
-                        </div>
-                      ) : null
-                    })()}
-                  </div>
+                      <span className="text-sm font-bold text-gray-900 dark:text-white">{Number(s.exact_scores)}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
             </>
