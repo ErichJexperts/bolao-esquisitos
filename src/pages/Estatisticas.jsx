@@ -221,13 +221,7 @@ export default function Estatisticas() {
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">Estatísticas</h1>
         <p className="text-gray-500 dark:text-gray-400 text-sm mb-8">Evolução e curiosidades do bolão.</p>
 
-        {/* Mobile */}
-        <div className="md:hidden bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-12 text-center">
-          <p className="text-gray-400 dark:text-gray-500 text-sm">Disponível apenas no computador.</p>
-        </div>
-
-        {/* Desktop */}
-        <div className="hidden md:flex flex-col gap-5">
+        <div className="flex flex-col gap-5">
 
           {/* RECORDES E CURIOSIDADES */}
           {hasStats && (() => {
@@ -245,7 +239,7 @@ export default function Estatisticas() {
             return records.length > 0 ? (
               <div>
                 <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-3">Recordes e curiosidades</p>
-                <div className="grid grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
                   {records.map((r, i) => (
                     <div key={i} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-4 flex flex-col gap-3">
                       <div className="flex items-center gap-2">
@@ -263,13 +257,9 @@ export default function Estatisticas() {
             ) : null
           })()}
 
-          {/* GRÁFICO */}
-          {!hasChart ? (
-            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-12 text-center">
-              <p className="text-gray-400 dark:text-gray-500 text-sm">Nenhum jogo computado ainda.</p>
-            </div>
-          ) : (
-            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-5 md:p-6">
+          {/* GRÁFICO — apenas desktop */}
+          {hasChart && (
+            <div className="hidden md:block bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-5 md:p-6">
               <div className="flex items-center justify-between mb-5">
                 <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">Pontuação acumulada por dia de jogo</p>
                 <button
@@ -285,6 +275,7 @@ export default function Estatisticas() {
           )}
 
           {hasStats && (
+
             <>
               {/* TAXA DE ACERTO */}
               <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-5 md:p-6">
@@ -295,7 +286,7 @@ export default function Estatisticas() {
                     <div key={s.user_id} className="flex items-center gap-3">
                       <span className="text-xs font-semibold text-gray-400 w-4 text-right shrink-0">{i + 1}</span>
                       <span
-                        className="text-sm font-semibold w-36 shrink-0 truncate"
+                        className="text-sm font-semibold w-24 md:w-36 shrink-0 truncate"
                         style={{ color: userColor(s.username) }}
                       >{s.username}</span>
                       <div className="flex-1 h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
@@ -305,14 +296,14 @@ export default function Estatisticas() {
                         />
                       </div>
                       <span className="text-sm font-bold text-gray-900 dark:text-white w-12 text-right shrink-0">{s.hit_rate}%</span>
-                      <span className="text-xs text-gray-400 dark:text-gray-500 shrink-0 w-16 text-right">{Number(s.total_games)} jogos</span>
+                      <span className="hidden md:inline text-xs text-gray-400 dark:text-gray-500 shrink-0 w-16 text-right">{Number(s.total_games)} jogos</span>
                     </div>
                   ))}
                 </div>
               </div>
 
               {/* QUASE LÁ + MELHORES DIAS */}
-              <div className="grid grid-cols-2 gap-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-5">
                   <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">Quase lá...</p>
                   <p className="text-xs text-gray-400 dark:text-gray-500 mb-5">Quantas vezes errou o placar por exatamente 1 gol</p>
